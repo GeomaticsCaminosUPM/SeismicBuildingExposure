@@ -1,3 +1,5 @@
+Under development
+
 # Footprint Attributes
 
 **Footprint Attributes** is a Python package built using GeoPandas to calculate various geometric indices related to building footprint geometry and seismic risk.
