@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="footprint_attributes",
-    version="0.3.0",
+    name="SeismicBuildingExposure",
+    version="0.1.0",
     description="",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
