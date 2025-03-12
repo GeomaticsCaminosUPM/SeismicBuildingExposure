@@ -12,7 +12,8 @@ from .utils import (
     eq_circle_intertia,
     calc_inertia_all,
     calc_inertia_principal,
-    get_angle
+    get_angle,
+    circunscribed_square
 )
 
 
@@ -129,7 +130,27 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame) -> list:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
     I_max, I_min = calc_inertia_principal(geoms.geometry,principal_dirs=False)
-    return np.sqrt(I_min / I_max)
+    return list(np.sqrt(I_min / I_max))
+
+def circunsribed_slenderness(geoms:gpd.GeoDataFrame) -> list:
+    geoms = geoms.copy() 
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
+
+    total_length_1, total_length_2 = circunscribed_square(
+        geoms.geometry,
+        inertia_df[1][:,0],
+        inertia_df[1][:,1],
+        inertia_df[3][:,0],
+        inertia_df[3][:,1],
+        return_length=True
+    )
+
+    return list(np.maximum(np.array(total_length_1) / np.array(total_length_2),
+                  np.array(total_length_2) / np.array(total_length_1)))   
     
 def inertia_circle(geoms:gpd.GeoDataFrame) -> list:
     """
@@ -205,8 +226,8 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
         'I_t' : (inertia_df[0] + inertia_df[2]) + area * e_magnitude ** 2, # Torsional inertia
         'r' : 0.5 * (inertia_df[0] - inertia_df[2]), #Mohr radius 
         'c' : 0.5 * (inertia_df[0] + inertia_df[2]), #Mohr centre
-        'vect_1': inertia_df[1],  # First principal axis
-        'vect_2': inertia_df[3],  # Second principal axis
+        'vect_1': [row for row in inertia_df[1]],  # First principal axis
+        'vect_2': [row for row in inertia_df[3]],  # Second principal axis
     })
 
     # Compute angle `b`. Angle of eccentricity direction and principal axis
@@ -298,8 +319,8 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
         'I_2': inertia_df[2],  # Second principal moment of inertia
         'r' : 0.5 * (inertia_df[0] - inertia_df[2]), #Mohr radius 
         'c' : 0.5 * (inertia_df[0] + inertia_df[2]), #Mohr centre
-        'vect_1': inertia_df[1],  # First principal axis
-        'vect_2': inertia_df[3],  # Second principal axis
+        'vect_1': [row for row in inertia_df[1]],  # First principal axis
+        'vect_2': [row for row in inertia_df[3]],  # Second principal axis
     })
 
     # Compute angle `b`. Angle of eccentricity direction and principal axis
@@ -334,7 +355,80 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     angle *= -180/np.pi  # invert to rotate north-east
          
     return pd.DataFrame({'excentricity_ratio' : excentricity_ratio, 'angle' : angle})
-    
+
+
+def setback_ratio(geoms:gpd.GeoDataFrame,max_slenderness=None) -> list:
+    geoms = geoms.copy()
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+        
+    convex_hull = geoms.geometry.convex_hull
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )
+    geoms_difference = convex_hull.geometry.difference(geoms_holes_filled.geometry)
+    inertia_df = calc_inertia_principal(convex_hull,principal_dirs=True)
+
+    df = gpd.GeoDataFrame({
+            'index':geoms.index,
+            'convex_hull':convex_hull,
+            'footprint_area':convex_hull.area,
+            'footprint_I_1':inertia_df[0],
+            'vect_1_x':inertia_df[1][:,0],
+            'vect_1_y':inertia_df[1][:,1],
+            'footprint_I_2':inertia_df[2],
+            'vect_2_x':inertia_df[3][:,0],
+            'vect_2_y':inertia_df[3][:,1],
+        },
+        geometry=geoms_difference,
+        crs=geoms.crs
+    )
+
+    df = df[df.geometry.is_empty==False].reset_index(drop=True)
+
+    total_length_1, total_length_2 = circunscribed_square(
+        df['convex_hull'],
+        df['vect_1_x'],
+        df['vect_1_y'],
+        df['vect_2_x'],
+        df['vect_2_y'],
+        return_length=True
+    )
+
+    df['total_length_1'] = total_length_1
+    df['total_length_2'] = total_length_2
+
+    df = df.explode().reset_index(drop=True)
+
+    length_1, length_2 = circunscribed_square(
+        df.geometry,
+        df['vect_1_x'],
+        df['vect_1_y'],
+        df['vect_2_x'],
+        df['vect_2_y'],
+        return_length=True
+    )
+
+    df['setback_length_1'] = length_1
+    df['setback_length_2'] = length_2
+
+    if max_slenderness is not None:
+        df.loc[(df['setback_length_1'] / df['setback_length_2']) > max_slenderness,'setback_length_1'] = 0
+        df.loc[(df['setback_length_1'] / df['setback_length_2']) > max_slenderness,'setback_length_2'] = 0
+        df.loc[(df['setback_length_2'] / df['setback_length_1']) > max_slenderness,'setback_length_1'] = 0
+        df.loc[(df['setback_length_2'] / df['setback_length_1']) > max_slenderness,'setback_length_2'] = 0
+
+    df['setback_ratio_1'] = df['setback_length_1'] / df['total_length_1']
+    df['setback_ratio_2'] = df['setback_length_2'] / df['total_length_2']
+
+    df['setback_ratio'] = df[['setback_ratio_1', 'setback_ratio_2']].max(axis=1)
+    setback_ratio = df.loc[df.groupby('index')['setback_ratio'].idxmax(),['index','setback_ratio']]
+    setback_ratio = geoms.merge(setback_ratio, left_index=True, right_on='index', how='left').fillna({'setback_ratio': 0})
+    setback_ratio = list(setback_ratio['setback_ratio'])
+    return setback_ratio
+
+"""
 def setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     geoms = geoms.copy()
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
@@ -351,11 +445,11 @@ def setback_ratio(geoms:gpd.GeoDataFrame) -> list:
         'index':geoms.index,
         'footprint_area':convex_hull.area,
         'footprint_I_1':inertia_df[0],
-        'vect_1_x':np.array([*inertia_df[1]])[:,0],
-        'vect_1_y':np.array([*inertia_df[1]])[:,1],
+        'vect_1_x':inertia_df[1][:,0],
+        'vect_1_y':inertia_df[1][:,1],
         'footprint_I_2':inertia_df[2],
-        'vect_2_x':np.array([*inertia_df[3]])[:,0],
-        'vect_2_y':np.array([*inertia_df[3]])[:,1]},
+        'vect_2_x':inertia_df[3][:,0],
+        'vect_2_y':inertia_df[3][:,1],
         geometry=geoms_difference,
         crs=geoms.crs
     )
@@ -370,7 +464,7 @@ def setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     setback_ratio = geoms.merge(setback_ratio, left_index=True, right_on='index', how='left').fillna({'setback_ratio': 0})
     setback_ratio = list(setback_ratio['setback_ratio'])
     return setback_ratio
-
+"""
 def hole_ratio(geoms:gpd.GeoDataFrame) -> list:
     geoms = geoms.copy()
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
@@ -405,10 +499,10 @@ def hole_ratio(geoms:gpd.GeoDataFrame) -> list:
             )**2 + (
                 df['polygon'].bounds['maxy']-df['polygon'].bounds['miny']
             )**2) / 2
-        df['line_start_x'] = df.geometry.centroid.x - np.array([*inertia_df[id]])[:,0] * (df['distance'] + 1) 
-        df['line_start_y'] = df.geometry.centroid.y - np.array([*inertia_df[id]])[:,1] * (df['distance'] + 1) 
-        df['line_end_x'] = df.geometry.centroid.x + np.array([*inertia_df[id]])[:,0] * (df['distance'] + 1) 
-        df['line_end_y'] = df.geometry.centroid.y + np.array([*inertia_df[id]])[:,1] * (df['distance'] + 1)    
+        df['line_start_x'] = df.geometry.centroid.x - inertia_df[id][:,0] * (df['distance'] + 1) 
+        df['line_start_y'] = df.geometry.centroid.y - inertia_df[id][:,1] * (df['distance'] + 1) 
+        df['line_end_x'] = df.geometry.centroid.x + inertia_df[id][:,0] * (df['distance'] + 1) 
+        df['line_end_y'] = df.geometry.centroid.y + inertia_df[id][:,1] * (df['distance'] + 1)    
         df['line'] = gpd.GeoSeries(df.apply(lambda row: LineString([(row['line_start_x'],row['line_start_y']),(row['line_end_x'],row['line_end_y'])]),axis=1),crs=df.crs)
         df['intersection'] = df['polygon'].intersection(df['line'])
         df = df.explode(column='intersection').reset_index(drop=True)
@@ -428,14 +522,15 @@ def hole_ratio(geoms:gpd.GeoDataFrame) -> list:
     hole_ratio = geoms.merge(hole_ratio, left_index=True, right_on='index', how='left').fillna({'hole_ratio': 0})
     hole_ratio = list(hole_ratio['hole_ratio'])
     return hole_ratio
-                      
-def mexico_NTC_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
+
+
+def mexico_NTC_df(geoms:gpd.GeoDataFrame, max_slenderness=4) -> pd.DataFrame:
     geoms = geoms.copy()
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
      
-    setback_ratio_results = setback_ratio(geoms)
+    setback_ratio_results = setback_ratio(geoms,max_slenderness=max_slenderness)
     hole_ratio_results = hole_ratio(geoms)
                       
     return pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results})

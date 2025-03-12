@@ -325,14 +325,15 @@ def calc_inertia_principal(collection,principal_dirs:bool=False):
         result = result.apply(
             lambda x: pd.Series([x[0][1],x[0][0],x[1][1],x[1][0]])
             if float(x[0][0]) < float(x[0][1]) 
-            else pd.Series([x[0][0],x[0][1],x[1][0],x[1][1]]),
+            else pd.Series([x[0][0],x[0][1],x[1][0]*np.array([1,-1]),x[1][1]*np.array([1,-1])]),
             axis=1
         )
 
-        vect_1 = result[2]
-        vect_2 = result[3]
+        vect_1 = np.stack(result[2])
+        vect_2 = np.stack(result[3])
         printcipal_mom_1 = result[0]
         printcipal_mom_2 = result[1]
+
         return np.array(printcipal_mom_1), np.array(vect_1), np.array(printcipal_mom_2), np.array(vect_2)
     else:
         result = aggregated_inertia['I_tensor'].apply(lambda tensor: pd.Series(np.sort(np.linalg.eigvals(tensor))))
@@ -457,3 +458,62 @@ def explode_exterior_and_interior_rings(gdf):
 def eq_circle_intertia(area):
     r = np.sqrt(area / np.pi)
     return 0.25*np.pi*r**4
+
+def circunscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_length:bool=False):
+    percentile = 0
+    if percentile > 0:
+        geometry = geoms.geometry.exterior
+    else:
+        geometry = geoms.geometry.convex_hull.exterior
+
+    df = pd.DataFrame(
+        {
+            'x':geometry.apply(lambda x:np.array(x.coords)[:,0]),
+            'y':geometry.apply(lambda x:np.array(x.coords)[:,1]),
+            'dir_1_x':dir_1_x,
+            'dir_1_y':dir_1_y,
+            'dir_2_x':dir_2_x,
+            'dir_2_y':dir_2_y
+        }
+    )
+    df['pdirs_x_coords'] = df.apply(lambda row: (row['x'] * row['dir_2_y'] + row['y'] * (-row['dir_2_x'])) * 1 / (row['dir_1_x']*row['dir_2_y'] - row['dir_1_y']*row['dir_2_x']), axis=1)
+    df['pdirs_y_coords'] = df.apply(lambda row: (row['x'] * (-row['dir_1_y']) + row['y'] * row['dir_1_x']) * 1 / (row['dir_1_x']*row['dir_2_y'] - row['dir_1_y']*row['dir_2_x']), axis=1)
+    
+    if return_length:
+        if percentile > 0:
+            length_1 = df['pdirs_x_coords'].apply(lambda arr: np.percentile(arr,percentile/100) - np.percentile(arr,1-percentile/100)).tolist()
+            length_2 = df['pdirs_y_coords'].apply(lambda arr: np.percentile(arr,percentile/100) - np.percentile(arr,1-percentile/100)).tolist()
+        else:
+            length_1 = df['pdirs_x_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
+            length_2 = df['pdirs_y_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
+        
+        return length_1, length_2
+    else:
+        if percentile > 0:
+            df['min_pdir_x'] = df['pdirs_x_coords'].apply(lambda x: np.percentile(x,percentile/100))
+            df['max_pdir_x'] = df['pdirs_x_coords'].apply(lambda x: np.percentile(x,1-percentile/100))
+            df['min_pdir_y'] = df['pdirs_y_coords'].apply(lambda x: np.percentile(x,percentile/100))
+            df['max_pdir_y'] = df['pdirs_y_coords'].apply(lambda x: np.percentile(x,1-percentile/100))
+        else:
+            df['min_pdir_x'] = df['pdirs_x_coords'].apply(np.min)
+            df['max_pdir_x'] = df['pdirs_x_coords'].apply(np.max)
+            df['min_pdir_y'] = df['pdirs_y_coords'].apply(np.min)
+            df['max_pdir_y'] = df['pdirs_y_coords'].apply(np.max)
+
+        df['square_1_x'] = df.apply(lambda row: (row['min_pdir_x'] * row['dir_1_x'] + row['min_pdir_y'] * row['dir_2_x']), axis=1)
+        df['square_1_y'] = df.apply(lambda row: (row['min_pdir_x'] * row['dir_1_y'] + row['min_pdir_y'] * row['dir_2_y']), axis=1)
+        df['square_2_x'] = df.apply(lambda row: (row['max_pdir_x'] * row['dir_1_x'] + row['min_pdir_y'] * row['dir_2_x']), axis=1)
+        df['square_2_y'] = df.apply(lambda row: (row['max_pdir_x'] * row['dir_1_y'] + row['min_pdir_y'] * row['dir_2_y']), axis=1)
+        df['square_3_x'] = df.apply(lambda row: (row['max_pdir_x'] * row['dir_1_x'] + row['max_pdir_y'] * row['dir_2_x']), axis=1)
+        df['square_3_y'] = df.apply(lambda row: (row['max_pdir_x'] * row['dir_1_y'] + row['max_pdir_y'] * row['dir_2_y']), axis=1)
+        df['square_4_x'] = df.apply(lambda row: (row['min_pdir_x'] * row['dir_1_x'] + row['max_pdir_y'] * row['dir_2_x']), axis=1)
+        df['square_4_y'] = df.apply(lambda row: (row['min_pdir_x'] * row['dir_1_y'] + row['max_pdir_y'] * row['dir_2_y']), axis=1)
+
+        df['square'] = df.apply(lambda row: shapely.Polygon([
+            [row['square_1_x'],row['square_1_y']],
+            [row['square_2_x'],row['square_2_y']],
+            [row['square_3_x'],row['square_3_y']],
+            [row['square_4_x'],row['square_4_y']],
+            [row['square_1_x'],row['square_1_y']]
+        ]), axis=1)
+        return gps.GeoSeries(list(df['square']),crs=geoms.crs)

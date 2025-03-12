@@ -5,7 +5,7 @@ import numpy as np
 import warnings
 from .utils import get_normal, explode_edges, calculate_momentum, select_touching_edges, resultant_angle, calc_inertia_z
 
-def forces_df(geoms:gpd.GeoDataFrame,buffer:float=0,height_column:str=None,min_radius:float=0) -> gpd.GeoDataFrame:
+def contact_forces_df(geoms:gpd.GeoDataFrame,buffer:float=0,height_column:str=None,min_radius:float=0) -> pd.DataFrame:
     """
     Calculates force-based metrics for building footprints based on their geometry and proximity.
 
@@ -113,7 +113,8 @@ def forces_df(geoms:gpd.GeoDataFrame,buffer:float=0,height_column:str=None,min_r
     geoms.loc[geoms['confinement_ratio'].isna(),'confinement_ratio'] = 0 
     geoms.loc[geoms['angular_acc'].isna(),'angular_acc'] = 0 
     geoms.loc[geoms['angle'].isna(),'angle'] = 0 
-    geoms[['height','force','confinement_ratio','angular_acc','angle']] = geoms[['height','force','confinement_ratio','angular_acc','angle']].astype(float)
+    #geoms[['height','force','confinement_ratio','angular_acc','angle']] = geoms[['height','force','confinement_ratio','angular_acc','angle']].astype(float)
+    geoms = geoms[['height','force','confinement_ratio','angular_acc','angle']].astype(float)
 
     return geoms
 
