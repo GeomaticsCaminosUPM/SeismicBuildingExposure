@@ -1,8 +1,8 @@
 Under development
 
-# Footprint Attributes
+# SeismicBuildingExposure
 
-**Footprint Attributes** is a Python package built using GeoPandas to calculate various geometric indices related to building footprint geometry and seismic risk.
+**SeismicBuildingExposure** is a Python package built using GeoPandas to calculate various geometric indices related to building footprint geometry and seismic risk.
 
 <div align="center">
   <img src="examples/example_img.png" alt="screenshot" width="500"/>
@@ -15,7 +15,7 @@ Under development
 To install the package, use the following command:
 
 ```bash
-pip install git+https://github.com/GeomaticsCaminosUPM/footprint_attributes.git
+pip install git+https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure.git
 ```
 
 ---
