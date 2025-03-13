@@ -1,4 +1,4 @@
 __version__ = '0.1.0'
 
-import .position 
-import .irregularity
+from . import position
+from . import irregularity
