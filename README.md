@@ -60,7 +60,7 @@ Relative position classes are:
 ---
 
 ### 2. **Irregularity**
-Measures geometric irregularity (**plan view**) of building footprints using various indices from different norms.
+Measures geometric irregularity of **building footprints** using various indices from different norms.
 
 #### 2.1. Eurocode 8
 
