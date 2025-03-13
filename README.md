@@ -73,7 +73,7 @@ The calculated parameters are:
   This considers the worst-case value across all possible directions.
 
 - **Radius Ratio**:  
-  $\text{radius_ratio} = \frac{\text{torsional radius}}{\text{radius of gyration}}$
+  $\text{radius\_ratio} = \frac{\text{torsional radius}}{\text{radius of gyration}}$
 
 
 - **Slenderness**:  
