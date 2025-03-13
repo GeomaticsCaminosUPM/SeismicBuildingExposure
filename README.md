@@ -81,12 +81,12 @@ The calculated parameters are:
 
 
 - **Slenderness**:  
-  Typically calculated as $ \frac{L_1}{L_2} $, where $ L_1 $ and $ L_2 $ are the sides of the footprint.  
+  Typically calculated as $\frac{L_1}{L_2}$, where $L_1$ and $L_2$ are the sides of the footprint.  
   Since polygonal shapes may not clearly resemble rectangles, we use:  
   $
   \sqrt{\frac{I_1}{I_2}}
   $  
-  where $ I_1 $ and $ I_2 $ are the principal values of the inertia tensor.
+  where $I_1$ and $I_2$ are the principal values of the inertia tensor.
 
 - **Compactness**:  
   $
@@ -103,15 +103,15 @@ The function `eurocode_8_df` returns the **weakest direction** as an angle (in d
   \sqrt{\frac{I_t}{I_j}}
   $  
   where:
-  - $ I_t $: Inertia in the Z-direction through the center of stiffness.  
-  - $ I_j $: Inertia through the center of mass along the axis perpendicular to the calculation direction.
+  - $I_t$: Inertia in the Z-direction through the center of stiffness.  
+  - $I_j$: Inertia through the center of mass along the axis perpendicular to the calculation direction.
 
 - **Radius of Gyration**:  
   $
   \sqrt{\frac{I_0}{\text{area}}}
   $  
   where:
-  - $ I_0 $: Inertia in the Z-direction through the center of mass.
+  - $I_0$: Inertia in the Z-direction through the center of mass.
 
 ##### Parameter Limits:
 
@@ -147,8 +147,8 @@ The function `codigo_sismico_costa_rica_df` returns the **weakest direction** as
   \text{dimension} = \sqrt{\text{area} \cdot \sqrt{\frac{I_i}{I_j}}}
   $  
   where:
-  - $ I_i $: Inertia in the considered direction (through the center of mass).
-  - $ I_j $: Inertia in the perpendicular direction (also through the center of mass).
+  - $I_i$: Inertia in the considered direction (through the center of mass).
+  - $I_j$: Inertia in the perpendicular direction (also through the center of mass).
 
 ##### Parameter Limits:
 
@@ -171,11 +171,11 @@ The calculated parameters are:
 
 - **Setback Ratio**:  
   $
-  \text{setback_ratio} = \frac{\text{length of setback}}{\text{length of side}}
+  \text{setback_ratio} = \frac{\text{setback length}}{\text{side length}}
   $  
   considering the **worst of the two directions** and the **worst of all setbacks**.
 
-- **Holes Ratio**:  
+- **Hole Ratio**:  
   $
   \text{hole_ratio} = \frac{\text{width of hole}}{\text{length of side}}
   $  
@@ -183,21 +183,21 @@ The calculated parameters are:
 
 ### Definitions:
 
-- **Length of Side**:  
+- **Side Length**:  
   The footprint is circumscribed in the **smallest possible rectangle**, with sides aligned to the **principal axes of the inertia tensor** of the footprint.  
   The *length of side* refers to the side of this rectangle along either of the principal directions.
 
   For the **hole ratio**, we consider the **principal axes of each hole shape**, and measure the side length as a line passing through the **center of mass of the hole** in each principal direction.
 
-- **Length of Setback**:  
+- **Setback Length**:  
   Setbacks are defined as the **polygons formed by the difference between the convex hull and the footprint (with holes filled)**.  
   These setback polygons are also circumscribed in a rectangle whose sides are aligned with the **principal directions of the inertia tensor of the footprint**.  
-  The *length of setback* is the side of this rectangle in one of the two principal directions.  
-  In the **setback ratio**, both the *length of setback* and the *length of side* must be taken in the **same direction** (parallel).
+  The *setback length* is the side of this rectangle in one of the two principal directions.  
+  In the **setback ratio**, both the *setback length* and the *side length* must be taken in the **same direction** (parallel).
 
-- **Width of Hole**:  
+- **Hole Width**:  
   Each hole is circumscribed in a rectangle, with sides aligned to the **principal directions of the hole’s inertia tensor**.  
-  The *width of the hole* is the length of this rectangle in each principal direction.
+  The *hole width* is the length of this rectangle in each principal direction.
 
 - **Max Slenderness**: In the context of the **setback ratio**, very thin irregularities caused by concave angles close to 180º comming from imperfections in the footprint,  can lead to a circumscribed rectangle with a disproportionately large side, even though such features may not represent a true setback. **Max slenderness** is the maximum slenderness of **setback circunscribed rectangles**. 
 
