@@ -4,10 +4,6 @@ Under development
 
 **SeismicBuildingExposure** is a Python package built using GeoPandas to calculate various geometric indices related to building footprint geometry and seismic risk.
 
-<div align="center">
-  <img src="examples/example_img.png" alt="screenshot" width="500"/>
-</div>
-
 ---
 
 ## Installation
@@ -56,6 +52,10 @@ Relative position classes are:
 3. **"corner"**: Touches at a corner.
 4. **"lateral"**: Touches on one side.
 5. **"isolated"**: No touching structures.
+
+<div align="center">
+  <img src="examples/example_img.png" alt="screenshot" width="500"/>
+</div>
 
 ---
 
