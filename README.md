@@ -181,7 +181,7 @@ The calculated parameters are:
 
 - **Max Slenderness**: In the context of the **setback ratio**, very thin irregularities caused by concave angles close to 180º comming from imperfections in the footprint,  can lead to a circumscribed rectangle with a disproportionately large side, even though such features may not represent a true setback. **Max slenderness** is the maximum slenderness of **setback circunscribed rectangles**. 
 
-### Mexico NTC – Parameter Limits:
+##### Parameter Limits:
 
 | Parameter        | Limit |
 |------------------|--------|
