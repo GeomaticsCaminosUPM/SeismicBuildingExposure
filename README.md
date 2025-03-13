@@ -69,11 +69,11 @@ Irregularity is measured following the [Eurocode 8 standard](https://www.phd.eng
 The calculated parameters are:
 
 - **Excentricity Ratio**:  
-  $\text{excentricity\_ratio} = \frac{\text{excentricity}}{\text{torsional radius}}$  
+  $\text{excentricity ratio} = \frac{\text{excentricity}}{\text{torsional radius}}$  
   This considers the worst-case value across all possible directions.
 
 - **Radius Ratio**:  
-  $\text{radius\_ratio} = \frac{\text{torsional radius}}{\text{radius of gyration}}$
+  $\text{radius ratio} = \frac{\text{torsional radius}}{\text{radius of gyration}}$
 
 
 - **Slenderness**:  
@@ -119,7 +119,7 @@ Irregularity is measured following the [Seismic Code of Costa Rica](https://www.
 The calculated parameter is:
 
 - **Excentricity Ratio**:  
-  $\text{excentricity\_ratio} = \frac{\text{excentricity}}{\text{dimension}}$  
+  $\text{excentricity ratio} = \frac{\text{excentricity}}{\text{dimension}}$  
   considering the **weakest possible direction**.
 
 The function `codigo_sismico_costa_rica_df` returns the **weakest direction** as an angle (in degrees) with respect to the **north (in UTM coordinates)**.
@@ -156,11 +156,11 @@ Irregularity is measured following the [Mexico NTC norm]().
 The calculated parameters are:
 
 - **Setback Ratio**:  
-  $\text{setback\_ratio} = \frac{\text{setback\_length}}{\text{side\_length}}$  
+  $\text{setback ratio} = \frac{\text{setback length}}{\text{side length}}$  
   considering the **worst of the two directions** and the **worst of all setbacks**.
 
 - **Hole Ratio**:  
-  $\text{hole\_ratio} = \frac{\text{hole\_width}}{\text{side\_length}}$  
+  $\text{hole ratio} = \frac{\text{hole width}}{\text{side length}}$  
   considering the **worst of the two directions** and the **worst of all holes**.
 
 ### Definitions:
