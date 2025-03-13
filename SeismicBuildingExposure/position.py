@@ -119,7 +119,7 @@ def contact_forces_df(geoms:gpd.GeoDataFrame,buffer:float=0,height_column:str=No
     return geoms
 
 def relative_position(
-    forces: gpd.GeoDataFrame,
+    forces: gpd.GeoDataFrame|pd.DataFrame,
     min_angular_acc: float = 2.133,
     min_confinement: float = 1,
     min_angle: float = 0.78,
@@ -162,10 +162,6 @@ def relative_position(
         ('angular_acc' not in forces.columns)
     ):
         forces = forces_df(forces,buffer=buffer,height_column=height_column,min_radius=min_radius)
-    
-    # Ensure the geometries are in a projected CRS for accurate calculations
-    if not forces.crs.is_projected:
-        forces = forces.to_crs(forces.geometry.estimate_utm_crs())
 
     # Initialize 'relative_position' column
     forces['relative_position'] = 'isolated'
@@ -191,9 +187,5 @@ def relative_position(
         ), 
         'relative_position'
     ] = 'torque'
-    
-    # Return to the original CRS if needed
-    #if orig_crs is not None and orig_crs != footprints.crs:
-    #    footprints = footprints.to_crs(orig_crs)
     
     return list(forces['relative_position'])
