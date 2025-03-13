@@ -231,7 +231,7 @@ Meassures the slenderness of the footrpint based on the relation of the two prin
 
 ##### **Formula** 
 
-$$\text{Inertia Slenderness} = \frac{I_1}{I_2}$$ 
+$$\text{Inertia Slenderness} = \sqrt{\frac{I_1}{I_2}}$$ 
 
 where:
 - $I_1$ maximum principal inertia value.
