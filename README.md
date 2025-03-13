@@ -69,29 +69,21 @@ Irregularity is measured following the [Eurocode 8 standard](https://www.phd.eng
 The calculated parameters are:
 
 - **Excentricity Ratio**:  
-  $
-  \text{excentricity_ratio} = \frac{\text{excentricity}}{\text{torsional radius}}
-  $  
+  $\text{excentricity_ratio} = \frac{\text{excentricity}}{\text{torsional radius}}$  
   This considers the worst-case value across all possible directions.
 
 - **Radius Ratio**:  
-  $
-  \text{radius_ratio} = \frac{\text{torsional radius}}{\text{radius of gyration}}
-  $
+  $\text{radius_ratio} = \frac{\text{torsional radius}}{\text{radius of gyration}}$
 
 
 - **Slenderness**:  
   Typically calculated as $\frac{L_1}{L_2}$, where $L_1$ and $L_2$ are the sides of the footprint.  
   Since polygonal shapes may not clearly resemble rectangles, we use:  
-  $
-  \sqrt{\frac{I_1}{I_2}}
-  $  
+  $\sqrt{\frac{I_1}{I_2}}$  
   where $I_1$ and $I_2$ are the principal values of the inertia tensor.
 
 - **Compactness**:  
-  $
-  \text{compactness} = \frac{\text{area of polygon (with all holes filled)}}{\text{area of convex hull}}
-  $
+  $\text{compactness} = \frac{\text{area of polygon (with all holes filled)}}{\text{area of convex hull}}$
 
 The function `eurocode_8_df` returns the **weakest direction** as an angle (in degrees) with respect to the **north (in UTM coordinates)**.
 
@@ -99,9 +91,7 @@ The function `eurocode_8_df` returns the **weakest direction** as an angle (in d
 
 - **Excentricity**: Distance between the center of mass (centroid of the polygon) and the center of stiffness (centroid of the boundary).
 - **Torsional Radius**:  
-  $
-  \sqrt{\frac{I_t}{I_j}}
-  $  
+  $\sqrt{\frac{I_t}{I_j}}$  
   where:
   - $I_t$: Inertia in the Z-direction through the center of stiffness.  
   - $I_j$: Inertia through the center of mass along the axis perpendicular to the calculation direction.
@@ -129,9 +119,7 @@ Irregularity is measured following the [Seismic Code of Costa Rica](https://www.
 The calculated parameter is:
 
 - **Excentricity Ratio**:  
-  $
-  \text{excentricity_ratio} = \frac{\text{excentricity}}{\text{dimension}}
-  $  
+  $\text{excentricity_ratio} = \frac{\text{excentricity}}{\text{dimension}}$  
   considering the **weakest possible direction**.
 
 The function `codigo_sismico_costa_rica_df` returns the **weakest direction** as an angle (in degrees) with respect to the **north (in UTM coordinates)**.
@@ -143,9 +131,7 @@ The function `codigo_sismico_costa_rica_df` returns the **weakest direction** as
 
 - **Dimension**:  
   The length of the shape in the considered direction. For rectangles, this is straightforward, but for an arbitrary polygon it is computed as:  
-  $
-  \text{dimension} = \sqrt{\text{area} \cdot \sqrt{\frac{I_i}{I_j}}}
-  $  
+  $\text{dimension} = \sqrt{\text{area} \cdot \sqrt{\frac{I_i}{I_j}}}$  
   where:
   - $I_i$: Inertia in the considered direction (through the center of mass).
   - $I_j$: Inertia in the perpendicular direction (also through the center of mass).
@@ -170,15 +156,11 @@ Irregularity is measured following the [Mexico NTC norm]().
 The calculated parameters are:
 
 - **Setback Ratio**:  
-  $
-  \text{setback_ratio} = \frac{\text{setback length}}{\text{side length}}
-  $  
+  $\text{setback_ratio} = \frac{\text{setback length}}{\text{side length}}$  
   considering the **worst of the two directions** and the **worst of all setbacks**.
 
 - **Hole Ratio**:  
-  $
-  \text{hole_ratio} = \frac{\text{width of hole}}{\text{length of side}}
-  $  
+  $\text{hole_ratio} = \frac{\text{width of hole}}{\text{length of side}}$  
   considering the **worst of the two directions** and the **worst of all holes**.
 
 ### Definitions:
@@ -223,8 +205,7 @@ Measures shape compactness (similarity to a circle).
   where:
   - \( A \): Area of the polygon.
   - \( P \): Perimeter of the polygon.
-  - 
----
+
 
 ##### **Convex Hull Momentum Index**
 Quantifies the irregularity of footprints based on the diference between the boundary of the footprint and the convex hull.
@@ -239,7 +220,6 @@ Quantifies the irregularity of footprints based on the diference between the bou
 
 **Note:** Footprint polygons and convex hulls are transformed into `LineStrings` based on their boundary.
 
----
 
 ##### **Inertia Circle Irregularity**
 Compares the inertia of a polygon to a circle with the same area.
@@ -247,7 +227,6 @@ Compares the inertia of a polygon to a circle with the same area.
   
   $$\text{Inertia Irregularity} = \frac{\text{Inertia of Equivalent Circle}}{\text{Inertia of Polygon}}$$
 
----
 
 #### **Inertia Slenderness** 
 Meassures the slenderness of the footrpint based on the relation of the two principal inertia values. 
