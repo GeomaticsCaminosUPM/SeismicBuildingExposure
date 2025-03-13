@@ -97,9 +97,7 @@ The function `eurocode_8_df` returns the **weakest direction** as an angle (in d
   - $I_j$: Inertia through the center of mass along the axis perpendicular to the calculation direction.
 
 - **Radius of Gyration**:  
-  $
-  \sqrt{\frac{I_0}{\text{area}}}
-  $  
+  $\sqrt{\frac{I_0}{\text{area}}}$  
   where:
   - $I_0$: Inertia in the Z-direction through the center of mass.
 
