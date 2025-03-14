@@ -280,6 +280,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
         'angle_excentricity':angle_excentricity,
         'angle_slenderness':angle_slenderness
     })
+    result_df.index = geoms.index
     return result_df
 
 
@@ -353,8 +354,11 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     angle[angle > 2*np.pi] -= 2*np.pi 
     angle[angle > np.pi/2] -= np.pi
     angle *= -180/np.pi  # invert to rotate north-east
+
+    result_df = pd.DataFrame({'excentricity_ratio' : excentricity_ratio, 'angle' : angle})
+    result_df.index = geoms.index
          
-    return pd.DataFrame({'excentricity_ratio' : excentricity_ratio, 'angle' : angle})
+    return result_df
 
 
 def setback_ratio(geoms:gpd.GeoDataFrame,max_slenderness=None) -> list:
@@ -532,5 +536,8 @@ def mexico_NTC_df(geoms:gpd.GeoDataFrame, max_slenderness=4) -> pd.DataFrame:
      
     setback_ratio_results = setback_ratio(geoms,max_slenderness=max_slenderness)
     hole_ratio_results = hole_ratio(geoms)
-                      
-    return pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results})
+
+    result_df = pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results})
+    result_df.index = geoms.index
+         
+    return result_df
