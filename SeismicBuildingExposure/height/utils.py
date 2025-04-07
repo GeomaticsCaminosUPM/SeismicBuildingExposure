@@ -279,3 +279,126 @@ def save(output_path:str, arr, bounds:gpd.GeoSeries, driver:str = "PNG"):
         transform=transform,
     ) as dst:
         dst.write(arr)
+
+
+
+def download_osm_streets(bounds:gpd.GeoSeries,network_type:str='drive',custom_filter=None):
+    if bounds.crs.is_projected == True:
+        crs = bounds.crs 
+    else:
+        crs = bounds.estimate_utm_crs()
+    #network_type (string {"all", "all_public", "bike", "drive", "drive_service", "walk"}) – what type of street network to get if custom_filter is None
+    G=ox.graph.graph_from_polygon(bounds.to_crs(4326).union_all(), network_type=network_type, simplify=True, retain_all=False, truncate_by_edge=True,custom_filter=custom_filter)
+    G=ox.projection.project_graph(G,to_crs=crs)
+    edges = ox.graph_to_gdfs(G,nodes=False)
+
+    return edges
+
+def sample_points(geoms, interval):
+    """Sample points every `interval` meters along a Shapely MultiLineString."""
+    mls = geoms.union_all()
+    total_length = mls.length
+    sampled_points = []
+    
+    # Generate distances at fixed intervals
+    distances = np.arange(0, total_length, interval)
+    
+    # Extract points at these distances
+    for dist in distances:
+        sampled_points.append(mls.interpolate(dist))
+    
+    return gpd.GeoSeries(sampled_points,crs=geoms.crs)
+
+
+def points_gdf_edge_gradient(gdf,value_column='height', k=5,min_distance=10):
+    from scipy.spatial import cKDTree
+    if k+1 > len(gdf): 
+        k = len(gdf) - 1 
+
+    df_orig_index = pd.DataFrame({'index':gdf.index})
+    gdf_copy = gdf[[value_column,'geometry']].copy()
+    gdf_copy['index'] = gdf_copy.index
+    gdf_copy = gdf_copy.drop_duplicates(['geometry',value_column]).reset_index(drop=True)
+    # Extract coordinates and heights
+    coords = np.array(list(zip(gdf_copy.geometry.x, gdf_copy.geometry.y)))
+    heights = gdf_copy[value_column].values
+    
+    # Build a KDTree for fast nearest neighbor search
+    tree = cKDTree(coords)
+    
+    # Query the nearest `k+1` points (including self)
+    distances, indices = tree.query(coords, k=k+1)
+
+
+    near_indices = (distances <= min_distance) * indices
+    near_heights = heights[near_indices] * (distances <= min_distance)
+    near_heights[distances > min_distance] = np.inf
+
+    delete_ids = np.argwhere(np.min(near_heights,axis=1) != near_heights[:,0])
+    delete_ids = delete_ids.transpose()[0]
+
+    if len(delete_ids) > 0:
+        gdf_copy = gdf_copy.drop(index=delete_ids)
+        if k+1 > len(gdf_copy): 
+            k = len(gdf_copy) - 1 
+
+        # Extract coordinates and heights
+        coords = np.array(list(zip(gdf_copy.geometry.x, gdf_copy.geometry.y)))
+        heights = gdf_copy[value_column].values
+        # Build a KDTree for fast nearest neighbor search
+        tree = cKDTree(coords)
+        # Query the nearest `k+1` points (including self)
+        distances, indices = tree.query(coords, k=k+1)
+        
+    # Compute height differences
+    height_diffs = heights[:, None] - heights[indices]
+
+    distances[distances == 0] = 10**-20
+    # Compute gradients (ignoring divide-by-zero concerns)
+    gradients = height_diffs / distances
+
+    # Ignore self-comparison by setting the first column to -inf
+    abs_gradients = np.abs(gradients)
+    abs_gradients[:, 0] = -np.inf
+    gradients[:, 0] = -np.inf
+
+    # Get row indices (0,1,2,...,num_points) and corresponding max gradient indices
+    row_indices = np.arange(gradients.shape[0])
+    max_grad_indices = np.argmax(abs_gradients, axis=1)
+
+    # Use advanced indexing to get the max gradient for each point
+    gdf_copy['gradient'] = gradients[row_indices, max_grad_indices]
+    df = df_orig_index.merge(gdf_copy[['index','gradient']],on='index',how='left')
+    return list(df['gradient'])
+
+def create_TIN_raster(points_gdf,img_bounds,shape:tuple=None,resolution:tuple=None,value_column='height'):
+    from rasterio.transform import from_bounds
+    from scipy.spatial import Delaunay
+    from scipy.interpolate import LinearNDInterpolator
+
+    points_gdf = points_gdf.to_crs(img_bounds.crs).copy()
+    if resolution is not None:
+        shape = resolution_to_shape(img_bounds,resolution)
+
+    data = pd.DataFrame({'x':points_gdf.geometry.x,'y':points_gdf.geometry.y,'values':points_gdf[value_column]})
+    # Extract coordinates and values
+    points = np.column_stack((data["x"], data["y"]))
+    values = data["values"].values
+
+    # Perform Delaunay triangulation
+    tri = Delaunay(points)
+
+    # Extract given bounds and shape
+    xmin, ymin, xmax, ymax = img_bounds.total_bounds
+    width, height = shape
+
+    # Create grid based on the given shape and bounds
+    grid_x, grid_y = np.meshgrid(
+        np.linspace(xmax, xmin, width),
+        np.linspace(ymin, ymax, height)
+    )
+    interpolator = LinearNDInterpolator(tri, values)
+    grid_z = interpolator(grid_x,grid_y)
+
+    return grid_z
+
