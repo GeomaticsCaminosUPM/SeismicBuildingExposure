@@ -402,3 +402,196 @@ def create_TIN_raster(points_gdf,img_bounds,shape:tuple=None,resolution:tuple=No
 
     return grid_z
 
+
+
+def _cast(collection):
+    """
+    Cast a collection to a shapely geometry array.
+    """
+    try:
+        import  geopandas as gpd
+        import shapely
+    except (ImportError, ModuleNotFoundError) as exception:
+        raise type(exception)(
+            "shapely and gpd are required for shape statistics."
+        ) from None
+
+    if Version(shapely.__version__) < Version("2"):
+        raise ImportError("Shapely 2.0 or newer is required.")
+
+    if isinstance(collection, gpd.GeoSeries | gpd.GeoDataFrame):
+        return np.asarray(collection.geometry.array)
+    else:
+        if isinstance(collection, np.ndarray | list):
+            return np.asarray(collection)
+        else:
+            return np.array([collection])
+
+        
+
+def _ring_inertia_x_y(polygon, reference_point):
+    """
+    Using equation listed on en.wikipedia.org/wiki/Second_moment_of_area#Any_polygon, the second
+    moment of area is the sum of the inertia across the x and y axes:
+
+    The :math:`x` axis is given by:
+
+    .. math::
+
+        I_x = (1/12)\\sum^{N}_{i=1} (x_i y_{i+1} - x_{i+1}y_i) (x_i^2 + x_ix_{i+1} + x_{i+1}^2)
+
+    While the :math:`y` axis is in a similar form:
+
+    .. math::
+
+        I_y = (1/12)\\sum^{N}_{i=1} (x_i y_{i+1} - x_{i+1}y_i) (y_i^2 + y_iy_{i+1} + y_{i+1}^2)
+
+    where :math:`x_i`, :math:`y_i` is the current point and :math:`x_{i+1}`, :math:`y_{i+1}` is the next point,
+    and where :math:`x_{n+1} = x_1, y_{n+1} = y_1`. For multipart polygons with holes,
+    all parts are treated as separate contributions to the overall centroid, which
+    provides the same result as if all parts with holes are separately computed, and then
+    merged together using the parallel axis theorem.
+
+    References
+    ----------
+    Hally, D. 1987. The calculations of the moments of polygons. Canadian National
+    Defense Research and Development Technical Memorandum 87/209.
+    https://apps.dtic.mil/dtic/tr/fulltext/u2/a183444.pdf
+
+    """
+
+    coordinates = shapely.get_coordinates(polygon)
+    centroid = shapely.centroid(polygon)
+    centroid_coords = shapely.get_coordinates(centroid)
+    points = coordinates - centroid_coords
+
+    # Ensure reference_point is a Shapely Point
+    if not isinstance(reference_point, Point):
+        reference_point = Point(reference_point)  # Convert to Point if necessary
+
+    I_x = np.abs(np.sum(
+        (points[:-1, 0]**2 + points[:-1, 0] * points[1:, 0] + points[1:, 0]**2) *
+        (points[1:, 1] * points[:-1, 0] - points[:-1, 1] * points[1:, 0])
+    ) / 12)
+
+    I_y = np.abs(np.sum(
+        (points[:-1, 1]**2 + points[:-1, 1] * points[1:, 1] + points[1:, 1]**2) *
+        (points[1:, 1] * points[:-1, 0] - points[:-1, 1] * points[1:, 0])
+    ) / 12)
+
+    I_xy = np.abs(np.sum(
+        (points[:-1,0] * points[1:,1] + 2 * points[:-1,0] * points[:-1,1] + 2 * points[1:,0] * points[1:,1] + points[1:,0] * points[:-1,1]) *
+        (points[1:, 1] * points[:-1, 0] - points[:-1, 1] * points[1:, 0])
+    ) / 24)
+    
+    # Step 4: Use the Parallel Axis Theorem to shift the moments of inertia to the new reference point
+
+    d_x = abs(reference_point.x - polygon.centroid.x)  # Distance along the x-axis
+    d_y = abs(reference_point.y - polygon.centroid.y)  # Distance along the y-axis
+
+    A = polygon.area  # Area of the polygon
+    I_x += A * d_x ** 2
+    I_y += A * d_y ** 2
+    I_xy += A * d_x * d_y
+
+    return I_x, I_y, I_xy
+
+def calc_inertia_all(collection):
+    """
+    Calculate inertia in x and y dirs.
+    """
+
+    # Ensure the collection is in the right format for computation
+    ga = _cast(collection)  # Assuming _cast is a helper function to ensure compatibility with geopandas
+
+    # Get the fundamental parts of the collection
+    parts, collection_ix = shapely.get_parts(ga, return_index=True)
+    rings, ring_ix = shapely.get_rings(parts, return_index=True)
+
+    # Get the exterior and interior rings
+    collection_ix = np.repeat(
+        collection_ix, shapely.get_num_interior_rings(parts) + 1
+    )
+
+    polygon_rings = shapely.polygons(rings)
+    is_external = np.zeros_like(collection_ix).astype(bool)
+    is_external[0] = True
+    is_external[1:] = ring_ix[1:] != ring_ix[:-1]
+
+    # Create GeoDataFrame to work with the polygons
+    polygon_rings = gpd.GeoDataFrame(
+        dict(
+            collection_ix=collection_ix,
+            ring_within_geom_ix=ring_ix,
+            is_external_ring=is_external,
+        ),
+        geometry=polygon_rings,
+    )
+
+    polygon_rings["sign"] = (1 - polygon_rings.is_external_ring * 2) * -1
+
+    # Get the original centroids for each polygon
+    original_centroids = shapely.centroid(ga)
+    polygon_rings["collection_centroid"] = original_centroids[collection_ix]
+    
+    # Apply the principal moment calculation for all polygons at once
+    polygon_rings[["I_x", "I_y", "I_xy"]] = polygon_rings.apply(
+        lambda x: pd.Series(_ring_inertia_x_y(x['geometry'], x['collection_centroid'])) * x['sign'],
+        axis=1
+    )
+
+    # Aggregate the moments for each collection
+    aggregated_inertia = polygon_rings.groupby("collection_ix")[["I_x", "I_y", "I_xy"]].sum()
+    return aggregated_inertia['I_x'], aggregated_inertia['I_y'], aggregated_inertia['I_xy']
+
+def calc_inertia_principal(collection,principal_dirs:bool=False):
+    """
+    Calculate the principal moments of inertia for a collection of polygons.
+    """
+    I_x, I_y, I_xy = calc_inertia_all(collection)
+    aggregated_inertia = pd.DataFrame({'I_x':I_x,'I_y':I_y,'I_xy':I_xy})
+    
+    aggregated_inertia['I_tensor'] = aggregated_inertia.apply(
+        lambda row: np.array([[row['I_x'], - row['I_xy']],
+                             [- row['I_xy'], row['I_y']]]), axis=1
+    )
+
+    # Calculate the eigenvalues (principal moments of inertia) and eigenvectors (principal axes)
+    if principal_dirs:
+        result = aggregated_inertia['I_tensor'].apply(lambda tensor: pd.Series(np.linalg.eig(tensor)))
+        result = result.apply(
+            lambda x: pd.Series([x[0][1],x[0][0],x[1][1],x[1][0]])
+            if float(x[0][0]) < float(x[0][1]) 
+            else pd.Series([x[0][0],x[0][1],x[1][0]*np.array([1,-1]),x[1][1]*np.array([1,-1])]),
+            axis=1
+        )
+
+        vect_1 = np.stack(result[2])
+        vect_2 = np.stack(result[3])
+        printcipal_mom_1 = result[0]
+        printcipal_mom_2 = result[1]
+
+        return np.array(printcipal_mom_1), np.array(vect_1), np.array(printcipal_mom_2), np.array(vect_2)
+    else:
+        result = aggregated_inertia['I_tensor'].apply(lambda tensor: pd.Series(np.sort(np.linalg.eigvals(tensor))))
+        printcipal_mom_1 = result[1]
+        printcipal_mom_2 = result[0]
+        return np.array(printcipal_mom_1), np.array(printcipal_mom_2)
+        
+def inertia_slenderness(geoms:gpd.GeoDataFrame) -> list:
+    """
+    Calculates the inertia irregularity index for building footprint polygons comparing the principal components of the inertia tensor (max and min).
+
+    Parameters:
+        geoms (gpd.GeoDataFrame): A GeoDataFrame containing building footprint geometries as polygons.
+
+    Returns:
+        list: A list with the same order as geoms which contains the calculated Polsby-Popper index for each geometry.
+    """
+    geoms = geoms.copy() 
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    I_max, I_min = calc_inertia_principal(geoms.geometry,principal_dirs=False)
+    return list(np.sqrt(I_min / I_max))
