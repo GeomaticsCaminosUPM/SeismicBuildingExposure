@@ -595,3 +595,23 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame) -> list:
 
     I_max, I_min = calc_inertia_principal(geoms.geometry,principal_dirs=False)
     return list(np.sqrt(I_min / I_max))
+
+def circunsribed_slenderness(geoms:gpd.GeoDataFrame) -> list:
+    geoms = geoms.copy() 
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
+
+    total_length_1, total_length_2 = circunscribed_square(
+        geoms.geometry,
+        inertia_df[1][:,0],
+        inertia_df[1][:,1],
+        inertia_df[3][:,0],
+        inertia_df[3][:,1],
+        return_length=True
+    )
+
+    return list(np.maximum(np.array(total_length_1) / np.array(total_length_2),
+                  np.array(total_length_2) / np.array(total_length_1)))  
