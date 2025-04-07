@@ -150,3 +150,11 @@ def inertia_slenderness(geoms:gpd.GeodataFrame,height_column:str='building_heigh
         
     slenderness = utils.inertia_slenderness(geoms)
     return geoms[height_column] / np.sqrt(geoms.area * (1/slenderness))
+
+
+def circunscribed_slenderness(geoms:gpd.GeodataFrame,height_column:str='building_height'):
+    if geoms.crs.is_projected == False:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+        
+    slenderness = utils.circunscribed_slenderness(geoms)
+    return geoms[height_column] / np.sqrt(geoms.area * (1/slenderness))
