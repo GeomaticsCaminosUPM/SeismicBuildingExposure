@@ -1,6 +1,6 @@
 # SeismicBuildingExposure.footprint module
 
-**SeismicBuildingExposure** is a Python package built using GeoPandas to calculate various geometric indices related to building footprint geometry and seismic risk. The **footprint** module focuses on tools to characterize different structural behaviour modifiers. For tools to help with footprint geometry aquisition please go to **data.footprints** or **MLfootprints**. 
+The **footprint** module focuses on tools to characterize different structural behaviour modifiers. For tools to help with footprint geometry aquisition please go to **data.footprints** or **MLfootprints**. 
 ---
 
 ## Installation
