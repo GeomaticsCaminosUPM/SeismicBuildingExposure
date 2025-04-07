@@ -51,7 +51,7 @@ Relative position classes are:
 5. **"isolated"**: No touching structures.
 
 <div align="center">
-  <img src="https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure/images/san_jose_relative_position.png" alt="screenshot" width="500"/>
+  <img src="https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure/blob/main/images/san_jose_relative_position.png" alt="screenshot" width="500"/>
 </div>
 
 ---
@@ -141,7 +141,7 @@ The function `codigo_sismico_costa_rica_df` returns the **weakest direction** as
 
 
 <div align="center">
-  <img src="https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure/images/guatemala_cr_norm.png" alt="screenshot" width="500"/>
+  <img src="https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure/blob/main/images/guatemala_cr_norm.png" alt="screenshot" width="500"/>
 </div>
 
 #### 2.3. Mexico NTC norm
@@ -186,7 +186,7 @@ The calculated parameters are:
 | Hole Ratio        | $< 0.4$ |
 
 <div align="center">
-  <img src="https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure/images/santo_domingo_ntc.png" alt="screenshot" width="500"/>
+  <img src="https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure/blob/main/images/santo_domingo_ntc.png" alt="screenshot" width="500"/>
 </div>
 
 #### 2.4. Geometric indices
