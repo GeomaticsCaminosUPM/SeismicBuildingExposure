@@ -144,4 +144,9 @@ def _setback_ratio(
 
     return list(orig_df['setback_ratio'])
 
-#gdfs[i]['slenderness_elevation'] = gdfs[i]['n_floors'] * 3/ np.sqrt(gdfs[i].geometry.area * (1/gdfs[i]['slenderness']))
+def inertia_slenderness(geoms:gpd.GeodataFrame,height_column:str='building_height'):
+    if geoms.crs.is_projected == False:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+        
+    slenderness = utils.inertia_slenderness(geoms)
+    return geoms[height_column] / np.sqrt(geoms.area * (1/slenderness))
