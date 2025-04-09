@@ -1,4 +1,4 @@
-def get_height_and_steepness(dsm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000,maximum_mode:bool=True):
+def _get_altitude(dsm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000,maximum_mode:bool=True, steepness:bool=True):
     gdf = gpd.GeoDataFrame({'id':footprints.index},geometry=footprints.geometry,crs=footprints.crs)
     orig_gdf = gdf.copy()
     gdf = gdf.to_crs(gdf.estimate_utm_crs())
@@ -41,33 +41,67 @@ def get_height_and_steepness(dsm_path:str,resolution:tuple,footprints:gpd.GeoSer
 
     gdf['height'] = gdf['pixels'].apply(get_height)
 
-    def get_gradient(pixels):
-        masked_array = np.ma.masked_where(pixels==nodata,pixels)
-        gradient = np.sqrt((np.gradient(masked_array,axis=0) / resolution[0])**2 + (np.gradient(masked_array,axis=1) / resolution[1])**2)
-        gradient = gradient.compressed()
-        m = np.mean(gradient)
-        s = np.std(gradient)
+    if steepness:
+        def get_gradient(pixels):
+            masked_array = np.ma.masked_where(pixels==nodata,pixels)
+            gradient = np.sqrt((np.gradient(masked_array,axis=0) / resolution[0])**2 + (np.gradient(masked_array,axis=1) / resolution[1])**2)
+            gradient = gradient.compressed()
+            m = np.mean(gradient)
+            s = np.std(gradient)
+    
+            return np.mean(gradient[gradient < (m+s)])
+    
+        gdf['mean_steepness'] = gdf['pixels'].apply(get_gradient)
+    
+        gdf = orig_gdf.merge(gdf[['id','height','mean_steepness']],on='id',how='left')
+        return list(gdf['height']), list(gdf['mean_steepness'])
+    else:
+        gdf = orig_gdf.merge(gdf[['id','height']],on='id',how='left')
+        return list(gdf['height'])
 
-        return np.mean(gradient[gradient < (m+s)])
+def roof_altitude(dsm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000,steepness:bool=False):
+    return _get_altitude(
+        dsm_path=dsm_path,
+        resolution=resolution,
+        footprints=footprints,
+        nodata=nodata,
+        maximum_mode=True,
+        steepness=steepness
+    )
 
-    gdf['mean_steepness'] = gdf['pixels'].apply(get_gradient)
+def ground_altitude(dtm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000steepness:bool=False):
+    return _get_altitude(
+        dsm_path=dtm_path,
+        resolution=resolution,
+        footprints=footprints,
+        nodata=nodata,
+        maximum_mode=False,
+        steepness=steepness
+    )
 
-    gdf = orig_gdf.merge(gdf[['id','height','mean_steepness']],on='id',how='left')
-
-    return pd.DataFrame({'height':list(gdf['height']), 'mean_steepness':list(gdf['mean_steepness'])})
-
-def roof_data(dsm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000):
-    return get_height_and_steepness(dsm_path=dsm_path,resolution=resolution,footprints=footprints,nodata=nodata,maximum_mode=True)
-
-def ground_data(dtm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000):
-    return get_height_and_steepness(dsm_path=dtm_path,resolution=resolution,footprints=footprints,nodata=nodata,maximum_mode=False)
-
-def data(dsm_path:str,dtm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000):
-  footprints = footprints.copy()
-  footprints['building_height'] = result_dsm['height'] - result_dtm['height']
-  footprints['ground_altitude'] = result_dtm['height']
-  footprints['ground_steepness'] = result_dtm['mean_steepness']
-  return footprints[['building_height','ground_altitude','ground_steepness']]
+def height_data(dsm_path:str,dtm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000):
+    result_roof = _get_altitude(
+        dsm_path=dsm_path,
+        resolution=resolution,
+        footprints=footprints,
+        nodata=nodata,
+        maximum_mode=True,
+        steepness=True
+    )
+    result_ground = _get_altitude(
+        dsm_path=dsm_path,
+        resolution=resolution,
+        footprints=footprints,
+        nodata=nodata,
+        maximum_mode=True,
+        steepness=True
+    )
+    footprints = footprints.copy()
+    footprints['building_height'] = result_roof[0] - result_ground[0]
+    footprints['ground_altitude'] = result_ground[0]
+    footprints['ground_steepness'] = result_ground[1]
+    footprints['roof_steepness'] = result_roof[1]
+    return footprints[['building_height','ground_altitude','ground_steepness','roof_steepness']]
 
 
 def roof_parts(dsm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000):
