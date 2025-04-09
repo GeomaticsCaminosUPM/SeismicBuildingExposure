@@ -1,3 +1,5 @@
+from .utils import read, get_crs
+
 def _get_altitude(dsm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000,maximum_mode:bool=True, steepness:bool=True):
     gdf = gpd.GeoDataFrame({'id':footprints.index},geometry=footprints.geometry,crs=footprints.crs)
     orig_gdf = gdf.copy()
