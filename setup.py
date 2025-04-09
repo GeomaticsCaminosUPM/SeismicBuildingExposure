@@ -10,7 +10,7 @@ setup(
     author_email="miguel.urena@upm.es",
     url="https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure",
     license="MIT",
-    packages=find_packages(include=["footprint", "footprint.*"]),
+    packages=find_packages(),
     install_requires=[
         "numpy>=1.21.0",
     ],
