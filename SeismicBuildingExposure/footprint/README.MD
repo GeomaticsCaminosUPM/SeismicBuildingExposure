@@ -8,7 +8,7 @@ The **footprint** module focuses on tools to characterize different structural b
 To install the package, use the following command:
 
 ```bash
-pip install git+https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure.git@main#subdirectory=SeismicBuildingExposure/SeismicBuildingExposure/footprint
+pip install "SeismicBuildingExposure[footprint] @ git+https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure.git"
 ```
 
 ---
