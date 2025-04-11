@@ -1,6 +1,6 @@
-# SeismicBuildingExposure
+# SeismicBuildingExposure.footprint
 
-**SeismicBuildingExposure** es una librería de Python construida sobre GeoPandas para calcular diversos índices geométricos relacionados con la geometría de huellas de edificaciones y riesgo sísmico.
+**footprint** es un módulo de la librería de Python **SeismicBuildingExposure** construida sobre GeoPandas para calcular diversos índices geométricos relacionados con la geometría de huellas de edificaciones y riesgo sísmico.
 
 ---
 
