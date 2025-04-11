@@ -2,7 +2,7 @@ Under development
 
 # SeismicBuildingExposure
 
-**SeismicBuildingExposure** is a Python package built using GeoPandas to calculate various geometric indices related to building footprint geometry and seismic risk.
+**SeismicBuildingExposure** is a Python package that computes everything you need to estimate the seismic exposure of buildings using only geospatial data and no field surveys.
 
 ---
 
@@ -16,260 +16,47 @@ pip install git+https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure.g
 
 ---
 
-## Features
-
-### 1. **Relative Position of Buildings**
-This feature determines if a building touches other structures (relative position within the city block). It calculates "forces" that neighboring structures exert on the building, proportional to the contact area (length of touching footprints multiplied by building height) in the normal direction of the touching plane.
-
-Contact forces are computed to help determine the realtive position class:
-- **`angular_acc`**:  
-  The angular acceleration, calculated as:
-
-$$\text{angular acc} = \frac{\text{momentum} \cdot \text{area}}{\text{inertia}}$$
-   
-  Where **momentum** is calculated as:
+## Modules
   
-$$\text{momentum} = \sum \(\text{distance} \cdot |\text{force}_i|\)$$
+### 1. MLfootprint 
+Machine learning AI model for automatic instance segmentation of building footprints. 
 
-- **`force`**:  
-  The magnitude of the resultant force acting on the footprint, normalized by the square root of the area:
-  
-$$\text{force} = \left| \sum \text{force}_i \right|$$
+- Fine tune the SAM2 model for assisted segmentation.
+- Fine tune the maskformer model for automatic segmentation.
+- Run new images (interference) on the SAM2 model for assisted segmentation.
+- Run new images (interference) on the maskformer model for automatic segmentation.
 
-- **`confinement_ratio`**:  
-  The proportion of total forces that are confined (counterbalanced by opposing forces):
-    
-$$\text{confinement ratio} = \frac{\sum |\text{force}_i| - \left| \sum \text{force}_i \right|}{\left| \sum \text{force}_i \right|}$$
+To create and download a dataset from publically available sources use the **data** module.
 
-- **`angle`**:  
-  The normalized sum of the angles between individual forces and the resultant force:
-   
-$$\text{angle} = \frac{\sum \left( |\text{force}_i| \cdot \text{angle}(\text{force}_i, \sum \text{force}_j) \right)}{\left| \sum \text{force}_i \right|}$$
+### 2. MLstructural_system 
 
-Relative position classes are:
-1. **"torque"**: High angular acceleration and class **confined** or **corner**.
-2. **"confined"**: Touches on both lateral sides.
-3. **"corner"**: Touches at a corner.
-4. **"lateral"**: Touches on one side.
-5. **"isolated"**: No touching structures.
+Predicts the structural system of a building using the data extracted from the **footprint**, **height** and **remote_sensing** modules.
 
-<div align="center">
-  <img src="images/san_jose_relative_position.png" alt="screenshot" width="500"/>
-</div>
+- Fine tune or train your own bayesian model with your own survey.
+- Predict using one of our pre-trained model on your own dataset.
 
----
+### 3. data 
 
-### 2. **Irregularity**
-Measures geometric irregularity of **building footprints** using various indices from different norms.
+The **data** module is based on the **GeoVisionDataset** library and provides functions adapted to create building footprint datasets using publically available datasources.
 
-#### 2.1. Eurocode 8
+### 4. footprint 
 
-Irregularity is measured following the [Eurocode 8 standard](https://www.phd.eng.br/wp-content/uploads/2015/02/en.1998.1.2004.pdf).
+This module is divided in 2:
 
-The calculated parameters are:
+- **position**: Relative position of the building (in a row, on a corner, isolated, etc.)
+- **irregularity**: Footprint irregularity according to international building codes.
 
-- **Excentricity Ratio**:  
-  $\text{excentricity ratio} = \frac{\text{excentricity}}{\text{torsional radius}}$  
-  This considers the worst-case value across all possible directions.
+### 5. height 
 
-- **Radius Ratio**:  
-  $\text{radius ratio} = \frac{\text{torsional radius}}{\text{radius of gyration}}$
+Provides functions to process a .ply point cloud and get building heights and other height related data. 
 
+- **DSM**: Digital surface model (raster image) form a .ply point cloud.
+- **DTM**: Digital terrain model (raster image) using the DSM as input and considering ground points to be on streets downloaded from OpenStreetMap.
+- **height**: Building height, roof steepness, ground altitude and ground steepness  on every building footprint.
+- **irregularity**: Irregularity in elevation according to international building codes.
 
-- **Slenderness**:  
-  Typically calculated as $\frac{L_1}{L_2}$, where $L_1$ and $L_2$ are the sides of the footprint.  
-  Since polygonal shapes may not clearly resemble rectangles, we use:  
-  $\sqrt{\frac{I_1}{I_2}}$  
-  where $I_1$ and $I_2$ are the principal values of the inertia tensor.
+### 6. remote_sensing 
 
-- **Compactness**:  
-  $\text{compactness} = \frac{\text{area of polygon (with all holes filled)}}{\text{area of convex hull}}$
-
-The function `eurocode_8_df` returns the **weakest direction** as an angle (in degrees) with respect to the **north (in UTM coordinates)**.
-
-##### Definitions:
-
-- **Excentricity**: Distance between the center of mass (centroid of the polygon) and the center of stiffness (centroid of the boundary).
-- **Torsional Radius**:  
-  $\sqrt{\frac{I_t}{I_j}}$  
-  where:
-  - $I_t$: Inertia in the Z-direction through the center of stiffness.  
-  - $I_j$: Inertia through the center of mass along the axis perpendicular to the calculation direction.
-
-- **Radius of Gyration**:  
-  $\sqrt{\frac{I_0}{\text{area}}}$  
-  where:
-  - $I_0$: Inertia in the Z-direction through the center of mass.
-
-##### Parameter Limits:
-
-| Parameter             | Limit        |
-|----------------------|--------------|
-| Excentricity Ratio    | < 0.3        |
-| Radius Ratio          | < 1.0        |
-| Slenderness           | < 4.0        |
-| Compactness           | > 0.95       |
-
-#### 2.2. Costa Rica Código Sísmico Norm
-
-Irregularity is measured following the [Seismic Code of Costa Rica](https://www.codigosismico.or.cr/).
-
-The calculated parameter is:
-
-- **Excentricity Ratio**:  
-  $\text{excentricity ratio} = \frac{\text{excentricity}}{\text{dimension}}$  
-  considering the **weakest possible direction**.
-
-The function `codigo_sismico_costa_rica_df` returns the **weakest direction** as an angle (in degrees) with respect to the **north (in UTM coordinates)**.
-
-##### Definitions:
-
-- **Excentricity**:  
-  The distance between the **center of mass** (centroid of the polygon) and the **center of stiffness** (centroid of the boundary).
-
-- **Dimension**:  
-  The length of the shape in the considered direction. For rectangles, this is straightforward, but for an arbitrary polygon it is computed as:  
-  $\text{dimension} = \sqrt{\text{area} \cdot \sqrt{\frac{I_i}{I_j}}}$  
-  where:
-  - $I_i$: Inertia in the considered direction (through the center of mass).
-  - $I_j$: Inertia in the perpendicular direction (also through the center of mass).
-
-##### Parameter Limits:
-
-| Parameter            | Limit                        | Irregularity Level |
-|---------------------|------------------------------|--------------------|
-| Excentricity Ratio   | $< 0.05$                      | Regular             |
-| Excentricity Ratio   | $0.05 < \frac{e}{d} < 0.25$   | Moderate            |
-| Excentricity Ratio   | $> 0.25$                      | High                |
-
-
-<div align="center">
-  <img src="images/guatemala_cr_norm.png" alt="screenshot" width="500"/>
-</div>
-
-#### 2.3. Mexico NTC norm
-
-Irregularity is measured following the [Mexico NTC norm]().
-
-The calculated parameters are:
-
-- **Setback Ratio**:  
-  $\text{setback ratio} = \frac{\text{setback length}}{\text{side length}}$  
-  considering the **worst of the two directions** and the **worst of all setbacks**.
-
-- **Hole Ratio**:  
-  $\text{hole ratio} = \frac{\text{hole width}}{\text{side length}}$  
-  considering the **worst of the two directions** and the **worst of all holes**.
-
-### Definitions:
-
-- **Side Length**:  
-  The footprint is circumscribed in the **smallest possible rectangle**, with sides aligned to the **principal axes of the inertia tensor** of the footprint.  
-  The *length of side* refers to the side of this rectangle along either of the principal directions.
-
-  For the **hole ratio**, we consider the **principal axes of each hole shape**, and measure the side length as a line passing through the **center of mass of the hole** in each principal direction.
-
-- **Setback Length**:  
-  Setbacks are defined as the **polygons formed by the difference between the convex hull and the footprint (with holes filled)**.  
-  These setback polygons are also circumscribed in a rectangle whose sides are aligned with the **principal directions of the inertia tensor of the footprint**.  
-  The *setback length* is the side of this rectangle in one of the two principal directions.  
-  In the **setback ratio**, both the *setback length* and the *side length* must be taken in the **same direction** (parallel).
-
-- **Hole Width**:  
-  Each hole is circumscribed in a rectangle, with sides aligned to the **principal directions of the hole’s inertia tensor**.  
-  The *hole width* is the length of this rectangle in each principal direction.
-
-- **Max Slenderness**: In the context of the **setback ratio**, very thin irregularities caused by concave angles close to 180º comming from imperfections in the footprint,  can lead to a circumscribed rectangle with a disproportionately large side, even though such features may not represent a true setback. **Max slenderness** is the maximum slenderness of **setback circunscribed rectangles**. 
-
-##### Parameter Limits:
-
-| Parameter        | Limit |
-|------------------|--------|
-| Setback Ratio     | $< 0.4$ |
-| Hole Ratio        | $< 0.4$ |
-
-<div align="center">
-  <img src="images/santo_domingo_ntc.png" alt="screenshot" width="500"/>
-</div>
-
-#### 2.4. Geometric indices
-
-##### **Polsby-Popper Index**
-Measures shape compactness (similarity to a circle).
-###### **Formula:**
-    
-  $$\text{Polsby-Popper Index} = \frac{4 \pi A}{P^2}$$
-  
-  where:
-  - \( A \): Area of the polygon.
-  - \( P \): Perimeter of the polygon.
-
-
-##### **Convex Hull Momentum Index**
-Quantifies the irregularity of footprints based on the diference between the boundary of the footprint and the convex hull.
-###### **Formula:**
-  
-  $$\text{Convex Hull Momentum} = \frac{l \cdot d}{L}$$
-  
-  where:
-  - \( l \): Length of the geometries outside the convex hull.
-  - \( d \): Distance of the center of gravity of the geometries outside the hull to the convex hull.
-  - \( L \): Total convex hull length.
-
-**Note:** Footprint polygons and convex hulls are transformed into `LineStrings` based on their boundary.
-
-
-##### **Inertia Circle Irregularity**
-Compares the inertia of a polygon to a circle with the same area.
-###### **Formula**:
-  
-  $$\text{Inertia Irregularity} = \frac{\text{Inertia of Equivalent Circle}}{\text{Inertia of Polygon}}$$
-
-
-#### **Inertia Slenderness** 
-Meassures the slenderness of the footrpint based on the relation of the two principal inertia values. 
-
-##### **Formula** 
-
-$$\text{Inertia Slenderness} = \sqrt{\frac{I_1}{I_2}}$$ 
-
-where:
-- $I_1$ maximum principal inertia value.
-- $I_2$ minimum principal inertia value.
-
-
-##### **Circunscribed Slenderness** 
-Meassures the slenderness of the footrpint based on the relation of the sides of the circunscribed rectangle in the principal direction (minimum possible rectangle). 
-
-###### **Formula** 
-
-$$\text{Circunscribed Slenderness} = \frac{L_1}{L_2}$$ 
-
-##### **Eurocode 8**
-
-All indices from the Eurocode 8 are available as independent functions:
-
-- Excentricity EC8
-- Radius Ratio
-- Slenderness
-- Compactness
-
-##### **Costa Rica Código Sísmico Norm**
-
-All indices from the Costa Rica Seismic Code are available as independent functions:
-
-- Excentricity CR
-
-##### **Mexico NTC Norm** 
-
-All indices from the Mexico NTC norm are available as independent functions:
-
-- Setback Ratio
-- Hole Ratio
-
----
-
-### 3. Heights 
-
-Under development
-  
+- **photogrammetry**: COLMAP open source photogrammetry workflow to get a .ply dense point cloud from drone images.
+- **roof_material**: Estimation of the roof material using LANDSAT and SENTINEL-2 spectral information.
+- **year**: Estimation of the year of first construction and year of last building change using LANDSAT sattelite imagery. 
