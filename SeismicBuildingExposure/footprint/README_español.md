@@ -196,8 +196,7 @@ $$\text{Esbeltez circunscrita} = \frac{L_1}{L_2}$$
 
 ---
 
-### 3. Alturas
-
-En desarrollo.
+### 3. Irregularidad en alzado
+Disponible en el módulo heights
 
 ---
