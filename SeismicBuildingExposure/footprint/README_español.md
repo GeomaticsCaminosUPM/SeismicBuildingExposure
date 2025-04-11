@@ -9,7 +9,7 @@
 Para instalar el paquete, usa el siguiente comando:
 
 ```bash
-pip install git+https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure.git
+pip install SeismicBuildingExposure[footprint] @ git+https://github.com/GeomaticsCaminosUPM/SeismicBuildingExposure.git
 ```
 
 ---
