@@ -74,7 +74,7 @@ def roof_altitude(dsm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=
         steepness=steepness
     )
 
-def ground_altitude(dtm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000steepness:bool=False):
+def ground_altitude(dtm_path:str,resolution:tuple,footprints:gpd.GeoSeries,nodata=-1000,steepness:bool=False):
     return _get_altitude(
         dsm_path=dtm_path,
         resolution=resolution,
