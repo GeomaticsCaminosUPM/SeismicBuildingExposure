@@ -417,7 +417,7 @@ def asce_7_setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     )
 
     L1,b1, L2,b2 = basic_lengths(geoms,get_a=False)
-    setback_ratio = list(np.maximum(np.array(b1) / np.array(L1),
+    setback_ratio = list(np.minimum(np.array(b1) / np.array(L1),
               np.array(b2) / np.array(L2)))  
     
     return setback_ratio
