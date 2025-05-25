@@ -219,6 +219,16 @@ def compactness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def eurocode_8_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     ratio = eurocode_8_df(geoms) 
     return list(ratio['eccentricity_ratio'])
+
+def eurocode_8_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    ratio = eurocode_8_df(geoms) 
+    return list(ratio['radius_ratio'])
+    
+def eurocode_8_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    return inertia_slenderness(geoms) 
+
+def eurocode_8_compactness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    return compactness(geoms) 
     
 def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     import scipy 
