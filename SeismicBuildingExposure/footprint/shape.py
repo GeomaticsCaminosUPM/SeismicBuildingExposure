@@ -402,7 +402,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
 
 
 
-def setback_ratio(geoms:gpd.GeoDataFrame) -> list:
+def asce_7_setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -423,7 +423,7 @@ def setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     return setback_ratio
 
 
-def hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
