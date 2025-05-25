@@ -512,7 +512,7 @@ def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
          
     return result_df
 
-def mexico_NTC_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
+def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     return asce_7_df(geoms)
 
 def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
