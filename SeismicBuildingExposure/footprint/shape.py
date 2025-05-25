@@ -16,7 +16,8 @@ from .utils import (
     circunscribed_square,
     center_of_stiffness,
     min_bbox,
-    rectangle_to_directions
+    rectangle_to_directions,
+    circunscribed_setback_length
 )
 
 
