@@ -1,4 +1,4 @@
-import  geopandas as gpd 
+import geopandas as gpd 
 import pandas as pd
 import shapely 
 import numpy as np
@@ -459,46 +459,31 @@ def eq_circle_intertia(area):
     r = np.sqrt(area / np.pi)
     return 0.25*np.pi*r**4
 
-def circunscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_length:bool=False):
-    percentile = 0
-    if percentile > 0:
-        geometry = geoms.geometry.exterior
-    else:
-        geometry = geoms.geometry.convex_hull.exterior
+def circunscribed_rectangle(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_length:bool=False):
+    geometry = geoms.geometry.convex_hull.exterior
 
-    df = pd.DataFrame(
-        {
-            'x':geometry.apply(lambda x:np.array(x.coords)[:,0]),
-            'y':geometry.apply(lambda x:np.array(x.coords)[:,1]),
-            'dir_1_x':dir_1_x,
-            'dir_1_y':dir_1_y,
-            'dir_2_x':dir_2_x,
-            'dir_2_y':dir_2_y
-        }
-    )
+    df = pd.DataFrame({
+        'x':geometry.apply(lambda x:np.array(x.coords)[:,0]),
+        'y':geometry.apply(lambda x:np.array(x.coords)[:,1]),
+        'dir_1_x':dir_1_x,
+        'dir_1_y':dir_1_y,
+        'dir_2_x':dir_2_x,
+        'dir_2_y':dir_2_y
+    })
+
     df['pdirs_x_coords'] = df.apply(lambda row: (row['x'] * row['dir_2_y'] + row['y'] * (-row['dir_2_x'])) * 1 / (row['dir_1_x']*row['dir_2_y'] - row['dir_1_y']*row['dir_2_x']), axis=1)
     df['pdirs_y_coords'] = df.apply(lambda row: (row['x'] * (-row['dir_1_y']) + row['y'] * row['dir_1_x']) * 1 / (row['dir_1_x']*row['dir_2_y'] - row['dir_1_y']*row['dir_2_x']), axis=1)
-    
+
     if return_length:
-        if percentile > 0:
-            length_1 = df['pdirs_x_coords'].apply(lambda arr: np.percentile(arr,percentile/100) - np.percentile(arr,1-percentile/100)).tolist()
-            length_2 = df['pdirs_y_coords'].apply(lambda arr: np.percentile(arr,percentile/100) - np.percentile(arr,1-percentile/100)).tolist()
-        else:
-            length_1 = df['pdirs_x_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
-            length_2 = df['pdirs_y_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
-        
+        length_1 = df['pdirs_x_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
+        length_2 = df['pdirs_y_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
         return length_1, length_2
+
     else:
-        if percentile > 0:
-            df['min_pdir_x'] = df['pdirs_x_coords'].apply(lambda x: np.percentile(x,percentile/100))
-            df['max_pdir_x'] = df['pdirs_x_coords'].apply(lambda x: np.percentile(x,1-percentile/100))
-            df['min_pdir_y'] = df['pdirs_y_coords'].apply(lambda x: np.percentile(x,percentile/100))
-            df['max_pdir_y'] = df['pdirs_y_coords'].apply(lambda x: np.percentile(x,1-percentile/100))
-        else:
-            df['min_pdir_x'] = df['pdirs_x_coords'].apply(np.min)
-            df['max_pdir_x'] = df['pdirs_x_coords'].apply(np.max)
-            df['min_pdir_y'] = df['pdirs_y_coords'].apply(np.min)
-            df['max_pdir_y'] = df['pdirs_y_coords'].apply(np.max)
+        df['min_pdir_x'] = df['pdirs_x_coords'].apply(np.min)
+        df['max_pdir_x'] = df['pdirs_x_coords'].apply(np.max)
+        df['min_pdir_y'] = df['pdirs_y_coords'].apply(np.min)
+        df['max_pdir_y'] = df['pdirs_y_coords'].apply(np.max)
 
         df['square_1_x'] = df.apply(lambda row: (row['min_pdir_x'] * row['dir_1_x'] + row['min_pdir_y'] * row['dir_2_x']), axis=1)
         df['square_1_y'] = df.apply(lambda row: (row['min_pdir_x'] * row['dir_1_y'] + row['min_pdir_y'] * row['dir_2_y']), axis=1)
@@ -516,4 +501,130 @@ def circunscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y,di
             [row['square_4_x'],row['square_4_y']],
             [row['square_1_x'],row['square_1_y']]
         ]), axis=1)
-        return gps.GeoSeries(list(df['square']),crs=geoms.crs)
+        return gpd.GeoSeries(list(df['square']),crs=geoms.crs)
+
+def min_bbox(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:bool=False):
+    if geoms.crs.is_projected == False:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+    if return_length:
+        coords = rectangles.get_coordinates()
+        coords['L'] = np.sqrt(
+            (coords['x'].shift(+1) - coords['x'])**2 +
+            (coords['y'].shift(+1) - coords['y'])**2
+        )
+        coords = coords.groupby(coords.index)['L'].agg(list).apply(lambda x: pd.Series({'L1': x[1], 'L2': x[2]}))
+        return list(coords['L1']), list(coords['L2'])
+
+    else:
+        return rectangles
+
+
+def rectangle_to_directions(rectangles:gpd.GeoDataFrame|gpd.GeoSeries,normalize:bool=False):
+    if rectangles.crs.is_projected == False:
+        rectangles = rectangles.to_crs(rectangles.geometry.estimate_utm_crs())
+
+    coords = rectangles.get_coordinates()
+    coords['dir_x'] = coords['x'].shift(+1) - coords['x']
+    coords['dir_y'] = coords['y'].shift(+1) - coords['y']
+
+    if normalize:
+        coords = coords.groupby(coords.index)[['dir_x','dir_y']].agg(list).apply(lambda x: pd.Series({
+            'dir_1_x': x['dir_x'][1] / np.sqrt(x['dir_x'][1]**2+x['dir_y'][1]**2),
+            'dir_1_y': x['dir_y'][1] / np.sqrt(x['dir_x'][1]**2+x['dir_y'][1]**2),
+            'dir_2_x': x['dir_x'][2] / np.sqrt(x['dir_x'][2]**2+x['dir_y'][2]**2),
+            'dir_2_y': x['dir_y'][2] / np.sqrt(x['dir_x'][2]**2+x['dir_y'][2]**2),
+        }),axis=1)
+    else:
+        coords = coords.groupby(coords.index)[['dir_x','dir_y']].agg(list).apply(lambda x: pd.Series({
+            'dir_1_x': x['dir_x'][1],
+            'dir_1_y': x['dir_y'][1],
+            'dir_2_x': x['dir_x'][2],
+            'dir_2_y': x['dir_y'][2],
+        }),axis=1) 
+        
+    return list(coords['dir_1_x']), list(coords['dir_1_y']), list(coords['dir_2_x']), list(coords['dir_2_y'])
+
+def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
+    if geoms.crs.is_projected == False:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+    rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
+    dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: shapely.Polygon(x.exterior)
+    )
+    setbacks = gpd.GeoDataFrame({},geometry=geoms.geometry.convex_hull.difference(geoms_holes_filled.geometry),crs=geoms.crs)
+    setbacks['orig_id'] = setbacks.index
+    setbacks['dir_1_x'] = dir_1_x
+    setbacks['dir_1_y'] = dir_1_y
+    setbacks['dir_2_x'] = dir_2_x
+    setbacks['dir_2_y'] = dir_2_y
+    setbacks = setbacks.explode('geometry',ignore_index=True)
+    dir_1_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_x'])
+    dir_1_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_y'])
+    dir_2_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_x'])
+    dir_2_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_y'])
+    b1,b2 = circunscribed_rectangle(setbacks[setbacks.geometry.is_empty==False],dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_length=True)
+    setbacks['b1'] = 0.
+    if len(b1) > 0:
+        setbacks.loc[setbacks.geometry.is_empty==False,'b1'] = list(b1)
+
+    setbacks['b2'] = 0.
+    if len(b2) > 0:
+        setbacks.loc[setbacks.geometry.is_empty==False,'b2'] = list(b2)
+
+    setbacks = setbacks.groupby(setbacks['orig_id'])[['b1','b2']].agg("max")
+    return list(setbacks['b1']), list(setbacks['b2'])
+
+def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:bool=False,resolution:int=16):
+    if geoms.crs.is_projected == False:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+    rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
+    dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
+
+    circles = shapely.maximum_inscribed_circle(geoms.geometry)
+    coords = circles.get_coordinates()
+    coords['R'] = np.sqrt(
+        (coords['x'].shift(+1) - coords['x'])**2 +
+        (coords['y'].shift(+1) - coords['y'])**2
+    )
+
+    coords = coords.groupby(coords.index)[['x','y','R']].agg(list).apply(lambda x: pd.Series({
+        'center' : shapely.Point([x['x'][0],x['y'][0]]),
+        'R' : x['R'][1],
+        'eps' : x['R'][1] * (1 - np.cos(np.pi / (2 * resolution)))
+    }),axis=1)
+
+    circles = gpd.GeoSeries(
+        shapely.buffer(
+            coords['center'],
+            distance=coords['R']+coords['eps'],
+            quad_segs=resolution
+        ),
+        crs=geoms.crs
+    )
+
+    hull = circles.boundary.intersection(geoms.geometry.boundary).convex_hull
+
+    if return_length:
+        a1, a2 = circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=True) 
+        return a1, a2 
+    else:
+        return circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=False) 
+
+def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,get_a:bool=True):
+    if geoms.crs.is_projected == False:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    L1, L2 = min_bbox(geoms,return_length=True)
+    b1, b2 = circunscribed_setback_length(geoms)
+    if get_a:
+        a1, a2 = maximum_inscribed_square(geoms,return_length=True)
+        return L1,a1,b1,L2,a2,b2
+    else:
+        return L1,b1,L2,b2
