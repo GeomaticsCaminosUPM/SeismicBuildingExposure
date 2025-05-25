@@ -13,9 +13,10 @@ from .utils import (
     calc_inertia_all,
     calc_inertia_principal,
     get_angle,
-    circunscribed_square
-    center_of_stiffness
-    min_bbox
+    circunscribed_square,
+    center_of_stiffness,
+    min_bbox,
+    rectangle_to_directions
 )
 
 
