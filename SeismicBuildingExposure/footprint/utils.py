@@ -618,8 +618,17 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
         return circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=False) 
 
 def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,get_a:bool=True,get_b:bool=True):
-    if geoms.crs.is_projected == False:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )  
 
     L1, L2 = min_bbox(geoms,return_length=True)
     if get_b:
