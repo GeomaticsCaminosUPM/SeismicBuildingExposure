@@ -15,10 +15,11 @@ from .utils import (
     get_angle,
     circunscribed_square
     center_of_stiffness
+    min_bbox
 )
 
 
-def convex_hull_momentum(geoms:gpd.GeoDataFrame) -> list:
+def convex_hull_momentum(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     """TODO: Explore normalize by the boundary and not by the hull and some type of normalization 0-1. Explore polsby + shape"""
     """
     Calculates an index to quantify the irregularity of building footprints.
@@ -36,12 +37,10 @@ def convex_hull_momentum(geoms:gpd.GeoDataFrame) -> list:
     Returns:
         list: A list with the same order as geoms which contains the computed irregularity index for each geometry.
     """
-
-    #if "shape_irregularity" in geoms.columns:
-    #    warnings.warn("The 'shape_irregularity' column already exists and will be overwritten.", UserWarning)
- 
-    geoms = geoms.drop(columns=['shape_irregularity'],errors='ignore')
     geoms_copy = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        
     geoms_copy['geom_id'] = geoms_copy.index.copy()
 
     if not geoms_copy.crs.is_projected:
@@ -81,7 +80,7 @@ def convex_hull_momentum(geoms:gpd.GeoDataFrame) -> list:
 
     return list(result['shape_irregularity'])
 
-def polsby_popper(geoms:gpd.GeoDataFrame, fill_holes:bool=True) -> list:
+def polsby_popper(geoms:gpd.GeoDataFrame|gpd.GeoSeries, fill_holes:bool=True) -> list:
     """TODO: Polsby popper donut shape. boundary.length takes both inner and outer circle into accout so that the perimeter is very large"""
     """
     Calculates the Polsby-Popper index for building footprint polygons.
@@ -100,6 +99,8 @@ def polsby_popper(geoms:gpd.GeoDataFrame, fill_holes:bool=True) -> list:
         list: A list in the same order as geoms which contains the calculated Polsby-Popper index for each geometry.
     """
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -115,7 +116,7 @@ def polsby_popper(geoms:gpd.GeoDataFrame, fill_holes:bool=True) -> list:
     
     return list(geoms['polsby_popper']) 
     
-def inertia_slenderness(geoms:gpd.GeoDataFrame) -> list:
+def inertia_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     """
     Calculates the inertia irregularity index for building footprint polygons comparing the principal components of the inertia tensor (max and min).
 
@@ -126,6 +127,9 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame) -> list:
         list: A list with the same order as geoms which contains the calculated Polsby-Popper index for each geometry.
     """
     geoms = geoms.copy() 
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -133,8 +137,11 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame) -> list:
     I_max, I_min = calc_inertia_principal(geoms.geometry,principal_dirs=False)
     return list(np.sqrt(I_min / I_max))
 
-def circunsribed_slenderness(geoms:gpd.GeoDataFrame) -> list:
+def circunsribed_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy() 
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -152,8 +159,21 @@ def circunsribed_slenderness(geoms:gpd.GeoDataFrame) -> list:
 
     return list(np.maximum(np.array(total_length_1) / np.array(total_length_2),
                   np.array(total_length_2) / np.array(total_length_1)))   
-    
-def inertia_circle(geoms:gpd.GeoDataFrame) -> list:
+
+def min_bbox_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
+    geoms = geoms.copy() 
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    L1, L2 = min_bbox(geoms,return_length=True)
+    return list(np.maximum(np.array(L1) / np.array(L2),
+              np.array(L2) / np.array(L1)))  
+
+def inertia_circle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     """
     Calculates the inertia irregularity index for building footprint polygons comparing inertia with the inertia of a circle with the same area.
 
@@ -167,6 +187,8 @@ def inertia_circle(geoms:gpd.GeoDataFrame) -> list:
         list: A list with the same order as geoms which contains the calculated Polsby-Popper index for each geometry.
     """
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
     
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -177,8 +199,11 @@ def inertia_circle(geoms:gpd.GeoDataFrame) -> list:
     
     return list(geoms['inertia_circle'])
 
-def compactness(geoms:gpd.GeoDataFrame) -> list:
+def compactness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -189,14 +214,17 @@ def compactness(geoms:gpd.GeoDataFrame) -> list:
     )
     return list(1 - (convex_hull.area - geoms_holes_filled.area) / convex_hull.area)
 
-def eurocode_8_excentricity_ratio(geoms:gpd.GeoDataFrame) -> list:
+def eurocode_8_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     ratio = eurocode_8_df(geoms) 
-    return list(ratio['excentricity_ratio'])
+    return list(ratio['eccentricity_ratio'])
     
-def eurocode_8_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
+def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     import scipy 
 
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -255,7 +283,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
 
     radius_of_gyration = np.sqrt(df['I_0']/df['area'])
 
-    excentricity_ratio = df['e_magnitude'] * np.abs(np.cos(df['x_opt'] - df['b'])) / torsional_radius
+    eccentricity_ratio = df['e_magnitude'] * np.abs(np.cos(df['x_opt'] - df['b'])) / torsional_radius
 
     radius_ratio = torsional_radius / radius_of_gyration
                       
@@ -265,10 +293,10 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
 
     vect_1 = np.array([*df['vect_1']])
     angle_vect_1 = np.arctan2(vect_1[:,1],vect_1[:,0]) 
-    angle_excentricity = np.abs(angle_vect_1 + df['x_opt'] + np.pi/2) # facing north
-    angle_excentricity[angle_excentricity > 2*np.pi] -= 2*np.pi
-    angle_excentricity[angle_excentricity > np.pi/2] -= np.pi 
-    angle_excentricity *= -180 / np.pi # invert to rotate north-east
+    angle_eccentricity = np.abs(angle_vect_1 + df['x_opt'] + np.pi/2) # facing north
+    angle_eccentricity[angle_eccentricity > 2*np.pi] -= 2*np.pi
+    angle_eccentricity[angle_eccentricity > np.pi/2] -= np.pi 
+    angle_eccentricity *= -180 / np.pi # invert to rotate north-east
 
     angle_slenderness = np.abs(angle_vect_1 + np.pi/2) # facing north 
     angle_slenderness[angle_slenderness > 2*np.pi] -= 2*np.pi
@@ -276,25 +304,28 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     angle_slenderness *= -180 / np.pi # invert to rotate north-east
 
     result_df = pd.DataFrame({
-        'excentricity_ratio':excentricity_ratio,
+        'eccentricity_ratio':eccentricity_ratio,
         'radius_ratio':radius_ratio,
         'slenderness':slenderness_result,
         'compactness':compactness_result,
-        'angle_excentricity':angle_excentricity,
+        'angle_eccentricity':angle_eccentricity,
         'angle_slenderness':angle_slenderness
     })
     result_df.index = geoms.index
     return result_df
 
 
-def costa_rica_excentricity_ratio(geoms:gpd.GeoDataFrame) -> list:
+def costa_rica_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     ratio = codigo_sismico_costa_rica_df(geoms) 
-    return list(ratio['excentricity_ratio'])
+    return list(ratio['eccentricity_ratio'])
     
-def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
+def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     import scipy 
                
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -353,96 +384,27 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
         axis=1
     )
 
-    excentricity_i = np.abs(df['e_magnitude'] * np.cos(df['x_opt'] - df['b']))
+    eccentricity_i = np.abs(df['e_magnitude'] * np.cos(df['x_opt'] - df['b']))
     dimension_i = np.sqrt(df['area']) * ((df['c'] + df['r'] * np.cos(-2*df['x_opt'])) / (df['c'] - df['r'] * np.cos(-2*df['x_opt']))) ** 0.25
-    excentricity_ratio = excentricity_i / dimension_i
+    eccentricity_ratio = eccentricity_i / dimension_i
     vect_1 = np.array([*df['vect_1']])
     angle = np.abs(np.arctan2(vect_1[:,1],vect_1[:,0]) + df['x_opt'] + np.pi/2) # facing north
     angle[angle > 2*np.pi] -= 2*np.pi 
     angle[angle > np.pi/2] -= np.pi
     angle *= -180/np.pi  # invert to rotate north-east
 
-    result_df = pd.DataFrame({'excentricity_ratio' : excentricity_ratio, 'angle' : angle})
+    result_df = pd.DataFrame({'eccentricity_ratio' : eccentricity_ratio, 'angle' : angle})
     result_df.index = geoms.index
          
     return result_df
 
 
 
-def setback_ratio(geoms:gpd.GeoDataFrame,max_slenderness=None) -> list:
-    geoms = geoms.copy()
-    # Ensure the geometries are in a projected CRS for accurate area and length calculations
-    if not geoms.crs.is_projected:
-        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
-        
-    convex_hull = geoms.geometry.convex_hull
-    geoms_holes_filled = geoms.geometry.apply(
-        lambda x: Polygon(x.exterior)
-    )
-    geoms_difference = convex_hull.geometry.difference(geoms_holes_filled.geometry)
-    inertia_df = calc_inertia_principal(convex_hull,principal_dirs=True)
-
-    df = gpd.GeoDataFrame({
-            'index':geoms.index,
-            'convex_hull':convex_hull,
-            'footprint_area':convex_hull.area,
-            'footprint_I_1':inertia_df[0],
-            'vect_1_x':inertia_df[1][:,0],
-            'vect_1_y':inertia_df[1][:,1],
-            'footprint_I_2':inertia_df[2],
-            'vect_2_x':inertia_df[3][:,0],
-            'vect_2_y':inertia_df[3][:,1],
-        },
-        geometry=geoms_difference,
-        crs=geoms.crs
-    )
-
-    df = df[df.geometry.is_empty==False].reset_index(drop=True)
-
-    total_length_1, total_length_2 = circunscribed_square(
-        df['convex_hull'],
-        df['vect_1_x'],
-        df['vect_1_y'],
-        df['vect_2_x'],
-        df['vect_2_y'],
-        return_length=True
-    )
-
-    df['total_length_1'] = total_length_1
-    df['total_length_2'] = total_length_2
-
-    df = df.explode().reset_index(drop=True)
-
-    length_1, length_2 = circunscribed_square(
-        df.geometry,
-        df['vect_1_x'],
-        df['vect_1_y'],
-        df['vect_2_x'],
-        df['vect_2_y'],
-        return_length=True
-    )
-
-    df['setback_length_1'] = length_1
-    df['setback_length_2'] = length_2
-
-    if max_slenderness is not None:
-        df.loc[(df['setback_length_1'] / df['setback_length_2']) > max_slenderness,'setback_length_1'] = 0
-        df.loc[(df['setback_length_1'] / df['setback_length_2']) > max_slenderness,'setback_length_2'] = 0
-        df.loc[(df['setback_length_2'] / df['setback_length_1']) > max_slenderness,'setback_length_1'] = 0
-        df.loc[(df['setback_length_2'] / df['setback_length_1']) > max_slenderness,'setback_length_2'] = 0
-
-    df['setback_ratio_1'] = df['setback_length_1'] / df['total_length_1']
-    df['setback_ratio_2'] = df['setback_length_2'] / df['total_length_2']
-
-    df['setback_ratio'] = df[['setback_ratio_1', 'setback_ratio_2']].max(axis=1)
-    setback_ratio = df.loc[df.groupby('index')['setback_ratio'].idxmax(),['index','setback_ratio']]
-    setback_ratio = geoms.merge(setback_ratio, left_index=True, right_on='index', how='left').fillna({'setback_ratio': 0})
-    setback_ratio = list(setback_ratio['setback_ratio'])
-    return setback_ratio
-
-"""
 def setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -451,34 +413,19 @@ def setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     geoms_holes_filled = geoms.geometry.apply(
         lambda x: Polygon(x.exterior)
     )
-    geoms_difference = convex_hull.geometry.difference(geoms_holes_filled.geometry)
-    inertia_df = calc_inertia_principal(convex_hull,principal_dirs=True)
-    df = gpd.GeoDataFrame({
-        'index':geoms.index,
-        'footprint_area':convex_hull.area,
-        'footprint_I_1':inertia_df[0],
-        'vect_1_x':inertia_df[1][:,0],
-        'vect_1_y':inertia_df[1][:,1],
-        'footprint_I_2':inertia_df[2],
-        'vect_2_x':inertia_df[3][:,0],
-        'vect_2_y':inertia_df[3][:,1],
-        geometry=geoms_difference,
-        crs=geoms.crs
-    )
-    df = df[df.geometry.is_empty==False].explode().reset_index(drop=True)
-    inertia_df = calc_inertia_all(df)
-    df['I_1'] = inertia_df[0] * df['vect_1_x'] ** 2 - inertia_df[2] * df['vect_1_y'] * df['vect_1_x'] - inertia_df[2] * df['vect_1_x'] * df['vect_1_y'] + inertia_df[1] * df['vect_1_y'] ** 2
-    df['I_2'] = inertia_df[0] * df['vect_2_x'] ** 2 - inertia_df[2] * df['vect_2_y'] * df['vect_2_x'] - inertia_df[2] * df['vect_2_x'] * df['vect_2_y'] + inertia_df[1] * df['vect_2_y'] ** 2
-    df['b'] = np.sqrt(df.geometry.area * np.sqrt(df['I_2'] / df['I_1'])) / np.sqrt(df['footprint_area'] * np.sqrt(df['footprint_I_2'] / df['footprint_I_1']))
-    df['a'] = np.sqrt(df.geometry.area * np.sqrt(df['I_1'] / df['I_2'])) / np.sqrt(df['footprint_area'] * np.sqrt(df['footprint_I_1'] / df['footprint_I_2']))
-    df['setback_ratio'] = df[['a', 'b']].max(axis=1)
-    setback_ratio = df.loc[df.groupby('index')['setback_ratio'].idxmax(),['index','setback_ratio']]
-    setback_ratio = geoms.merge(setback_ratio, left_index=True, right_on='index', how='left').fillna({'setback_ratio': 0})
-    setback_ratio = list(setback_ratio['setback_ratio'])
+
+    L1,b1, L2,b2 = basic_lengths(geoms,get_a=False)
+    setback_ratio = list(np.maximum(np.array(b1) / np.array(L1),
+              np.array(b2) / np.array(L2)))  
+    
     return setback_ratio
-"""
-def hole_ratio(geoms:gpd.GeoDataFrame) -> list:
+
+
+def hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -536,16 +483,253 @@ def hole_ratio(geoms:gpd.GeoDataFrame) -> list:
     return hole_ratio
 
 
-def mexico_NTC_df(geoms:gpd.GeoDataFrame, max_slenderness=4) -> pd.DataFrame:
+def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
      
-    setback_ratio_results = setback_ratio(geoms,max_slenderness=max_slenderness)
+    setback_ratio_results = setback_ratio(geoms)
     hole_ratio_results = hole_ratio(geoms)
 
     result_df = pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results})
     result_df.index = geoms.index
          
     return result_df
+
+def mexico_NTC_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
+    return asce_7_df(geoms)
+
+def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )  
+
+    L1,a1, L2,a2 = basic_lengths(geoms_holes_filled,get_b=False)
+    df = pd.DataFrame({
+        'L1': L1, 'a1': a1,
+        'L2': L2, 'a2': a2
+    })
+    
+    # Choose values based on where a1 > a2
+    df['L'] = df['L1'].where(df['a1'] > df['a2'], df['L2'])
+    df['a'] = df['a1'].where(df['a1'] > df['a2'], df['a2'])
+    
+    # Extract the final lists
+    L = df['L'].to_numpy()
+    a = df['a'].to_numpy()
+
+    beta_1 = list(a/L)
+    return list(beta_1) 
+    
+def gndt_beta_2_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )  
+
+    L1,a1, L2,a2 = basic_lengths(geoms_holes_filled,get_b=False)
+    df = pd.DataFrame({
+        'L1': L1, 'a1': a1, 'b1': b1,
+        'L2': L2, 'a2': a2, 'b2': b2
+    })
+    
+    # Choose values based on where a1 > a2
+    df['L'] = df['L1'].where(df['a1'] > df['a2'], df['L2'])
+    df['a'] = df['a1'].where(df['a1'] > df['a2'], df['a2'])
+    df['b'] = df['b1'].where(df['a1'] > df['a2'], df['b2'])
+    
+    # Extract the final lists
+    L = df['L'].to_numpy()
+    a = df['a'].to_numpy()
+    b = df['b'].to_numpy()
+    
+    beta_2 = list(b/L)
+    return list(beta_2)
+    
+def gndt_beta_3_footprint_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    return min_bbox_slenderness(geoms)
+    
+def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,directions:tuple=None,main_shape_lengths:tuple=None) -> list:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )  
+
+    if directions is not None:
+        dir_1_x, dir_1_y, dir_2_x, dir_2_y = directions 
+    else:
+        rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+        rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
+        dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
+    
+    if main_shape_lengths is not None:
+        a1,a2 = main_shape_lengths
+    else:
+        L1,a1, L2,a2 = basic_lengths(geoms_holes_filled,get_b=False)
+
+    geoms['center_of_stiffness'] = center_of_stiffness(geoms)
+    # Compute eccentricity vectors (difference between centroid and boundary centroid)
+    e_x = geoms.geometry.apply(lambda geom: np.array(
+        geom.geometry.centroid.x - geom['center_of_stiffness'].x
+    ), axis=1)
+    
+    e_y = geoms.geometry.apply(lambda geom: np.array(
+        geom.geometry.centroid.y - geom['center_of_stiffness'].y
+    ), axis=1)
+
+    e_1 = dir_1_x * e_x + dir_1_y * e_y
+    e_2 = dir_2_x * e_x + dir_2_y * e_y
+    
+    df = pd.DataFrame({
+        'e1': e1, 'a1': a1,
+        'e2': e2, 'a2': a2
+    })
+    
+    # Choose values based on where a1 > a2
+    df['e'] = df['e1'].where(df['a1'] > df['a2'], df['e2'])
+    df['a'] = df['a1'].where(df['a1'] > df['a2'], df['a2'])
+    
+    # Extract the final lists
+    e = df['e'].to_numpy()
+    a = df['a'].to_numpy()
+    
+    beta_4 = list(e/a)
+    return list(beta_4)
+    
+def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,directions:tuple=None,setback_lengths:tuple=None) -> list:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )  
+
+    if directions is not None:
+        dir_1_x, dir_1_y, dir_2_x, dir_2_y = directions
+    else:
+        rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+        rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
+        dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
+
+    setbacks = gpd.GeoDataFrame({},geometry=geoms.geometry.convex_hull.difference(geoms_holes_filled.geometry),crs=geoms.crs)
+    df = gpd.GeoDataFrame(
+        {
+            'index':geoms.index,
+            'polygon_with_holes':geoms.geometry,
+            'polygon':geoms_holes_filled
+        },
+        geometry = setbacks,
+        crs = geoms.crs
+    )
+    df = df.loc[df.geometry.is_empty == False]
+    df = df.explode().reset_index(drop=True)
+
+    if setbacks_lengths is not None:
+        b1,b2 = setbacks_lengths
+    else:
+        b1, b2 = circunscribed_setback_length(geoms)
+
+    dir_x = [dir_1_x,dir_2_x]
+    dir_y = [dir_1_y,dir_2_y]
+    b = [b1,b2]
+    for i in range(2):        
+        df['distance'] = np.sqrt((
+                df['polygon'].bounds['maxx']-df['polygon'].bounds['minx']
+            )**2 + (
+                df['polygon'].bounds['maxy']-df['polygon'].bounds['miny']
+            )**2) / 2
+        df['line_start_x'] = df.geometry.centroid.x - dir_x[i] * (df['distance'] + 1) 
+        df['line_start_y'] = df.geometry.centroid.y - dir_y[i] * (df['distance'] + 1) 
+        df['line_end_x'] = df.geometry.centroid.x + dir_x[i] * (df['distance'] + 1) 
+        df['line_end_y'] = df.geometry.centroid.y + dir_y[i] * (df['distance'] + 1)    
+        df['line'] = gpd.GeoSeries(df.apply(lambda row: LineString([(row['line_start_x'],row['line_start_y']),(row['line_end_x'],row['line_end_y'])]),axis=1),crs=df.crs)
+        df['intersection'] = df['polygon'].intersection(df['line'])
+        df = df.explode(column='intersection').reset_index(drop=True)
+        df = df.loc[df['intersection'].distance(df.centroid) < 10**-3]
+        df[f'c_{i+1}'] = df['intersection'].length
+        df[f'b_{i+1}'] = b[i]
+
+        df[f'setback_slenderness_{i+1}'] = df[f'c_{i+1}'] / df[f'b_{i+1}']
+    
+    df['setback_slenderness'] = df[['setback_slenderness_1','setback_slenderness_2']].max(axis=1)
+    setback_slenderness = df.loc[df.groupby('index')['setback_slenderness'].idxmax(),['index','setback_slenderness']]
+    setback_slenderness = geoms.merge(setback_slenderness, left_index=True, right_on='index', how='left').fillna({'setback_slenderness': 0})
+    setback_slenderness = list(setback_slenderness['setback_slenderness'])
+    return setback_slenderness
+
+def gndt_italy_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )    
+     
+    L1,a1,b1, L2,a2,b2 = basic_lengths(geoms_holes_filled)
+    df = pd.DataFrame({
+        'L1': L1, 'a1': a1, 'b1': b1,
+        'L2': L2, 'a2': a2, 'b2': b2
+    })
+    
+    # Choose values based on where a1 > a2
+    df['L'] = df['L1'].where(df['a1'] > df['a2'], df['L2'])
+    df['a'] = df['a1'].where(df['a1'] > df['a2'], df['a2'])
+    df['b'] = df['b1'].where(df['a1'] > df['a2'], df['b2'])
+    
+    # Extract the final lists
+    L = df['L'].to_numpy()
+    a = df['a'].to_numpy()
+    b = df['b'].to_numpy()
+
+    beta_1 = list(a/L)
+    beta_2 = list(b/L)
+    beta_3 = list(np.maximum(np.array(L1) / np.array(L2),
+              np.array(L2) / np.array(L1)))  
+
+    rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+    rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
+    dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
+    
+    beta_4 = gndt_beta_4_eccentricity_ratio(geoms,directions=(dir_1_x, dir_1_y, dir_2_x, dir_2_y),main_shape_lengths=(a1,a2))
+    beta_6 = gndt_beta_6_setback_slenderness(geoms,directions=(dir_1_x, dir_1_y, dir_2_x, dir_2_y),setback_lengths=(b1,b2))
+
+return pd.DataFrame({'beta_1_main_shape_slenderness':beta_1,'beta_2_setback_ratio':beta_2, 'beta_3_footprint_slenderness':beta_3, 'beta_4_eccentricity_ratio':beta_4, 'beta_6_setback_slenderness':beta_6})
+    
+
+    
