@@ -617,14 +617,21 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
     else:
         return circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=False) 
 
-def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,get_a:bool=True):
+def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,get_a:bool=True,get_b:bool=True):
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
     L1, L2 = min_bbox(geoms,return_length=True)
-    b1, b2 = circunscribed_setback_length(geoms)
+    if get_b:
+        b1, b2 = circunscribed_setback_length(geoms)
     if get_a:
         a1, a2 = maximum_inscribed_square(geoms,return_length=True)
+
+    if get_a and get_b:
         return L1,a1,b1,L2,a2,b2
-    else:
+    elif get_b:
         return L1,b1,L2,b2
+    elif get_a:
+        return L1,a1,L2,a2 
+    else:
+        return L1,L2
