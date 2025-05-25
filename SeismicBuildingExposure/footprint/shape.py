@@ -14,6 +14,7 @@ from .utils import (
     calc_inertia_principal,
     get_angle,
     circunscribed_square
+    center_of_stiffness
 )
 
 
@@ -199,16 +200,18 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
-        
+
     # Compute principal moments of inertia and their corresponding eigenvectors
     inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
 
+    geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+    geoms['center_of_stiffness'] = center_of_stiffness(geoms)
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
     e_vect = geoms.geometry.apply(lambda geom: np.array([
-        geom.centroid.x - geom.boundary.centroid.x,
-        geom.centroid.y - geom.boundary.centroid.y
-    ]))
-    
+        geom.geometry.centroid.x - geom['center_of_stiffness'].x,
+        geom.geometry.centroid.y - geom['center_of_stiffness'].y
+    ]), axis=1)
+    geoms = geoms.geometry
     # Compute magnitude of eccentricity vectors
     e_magnitude = np.sqrt(np.sum(np.array([*(e_vect * e_vect)]), axis=1))
 
@@ -298,12 +301,16 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
              
     # Compute principal moments of inertia and their corresponding eigenvectors
     inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
-
+    
+    geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+    geoms['center_of_stiffness'] = center_of_stiffness(geoms)
+    
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
     e_vect = geoms.geometry.apply(lambda geom: np.array([
-        geom.centroid.x - geom.boundary.centroid.x,
-        geom.centroid.y - geom.boundary.centroid.y
-    ]))
+        geom.geometry.centroid.x - geom['center_of_stiffness'].x,
+        geom.geometry.centroid.y - geom['center_of_stiffness'].y
+    ]), axis=1)
+    geoms = geoms.geometry
     
     # Compute magnitude of eccentricity vectors
     e_magnitude = np.sqrt(np.sum(np.array([*(e_vect * e_vect)]), axis=1))
@@ -359,6 +366,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     result_df.index = geoms.index
          
     return result_df
+
 
 
 def setback_ratio(geoms:gpd.GeoDataFrame,max_slenderness=None) -> list:
