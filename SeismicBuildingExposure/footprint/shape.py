@@ -16,7 +16,8 @@ from .utils import (
     center_of_mass,
     min_bbox,
     rectangle_to_directions,
-    circunscribed_setback_length
+    circunscribed_setback_length,
+    circunscribed_rectangle
 )
 
 
@@ -149,7 +150,7 @@ def circunsribed_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
     inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
 
-    total_length_1, total_length_2 = circunscribed_square(
+    total_length_1, total_length_2 = circunscribed_rectangle(
         geoms.geometry,
         inertia_df[1][:,0],
         inertia_df[1][:,1],
