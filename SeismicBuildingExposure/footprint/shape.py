@@ -537,7 +537,7 @@ def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> 
     })
     
     # Choose values based on where a1 > a2
-    df['L'] = df['L1'].where(df['a1'] > df['a2'], df['L2'])
+    df['L'] = df['L2'].where(df['a1'] > df['a2'], df['L1'])
     df['a'] = df['a1'].where(df['a1'] > df['a2'], df['a2'])
     
     # Extract the final lists
@@ -567,7 +567,7 @@ def gndt_beta_2_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     })
     
     # Choose values based on where a1 > a2
-    df['L'] = df['L1'].where(df['a1'] > df['a2'], df['L2'])
+    df['L'] = df['L2'].where(df['a1'] > df['a2'], df['L1'])
     df['a'] = df['a1'].where(df['a1'] > df['a2'], df['a2'])
     df['b'] = df['b1'].where(df['a1'] > df['a2'], df['b2'])
     
@@ -723,7 +723,7 @@ def gndt_italy_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     })
     
     # Choose values based on where a1 > a2
-    df['L'] = df['L1'].where(df['a1'] > df['a2'], df['L2'])
+    df['L'] = df['L2'].where(df['a1'] > df['a2'], df['L1'])
     df['a'] = df['a1'].where(df['a1'] > df['a2'], df['a2'])
     df['b'] = df['b1'].where(df['a1'] > df['a2'], df['b2'])
     
