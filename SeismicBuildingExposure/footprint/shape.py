@@ -1,7 +1,7 @@
 import geopandas as gpd 
 import pandas as pd
 import shapely 
-from shapely.geometry import Polygon, MultiPolygon, LineString
+from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 import numpy as np
 import warnings
 from .utils import (
