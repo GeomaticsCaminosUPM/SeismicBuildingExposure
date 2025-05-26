@@ -2,7 +2,7 @@ import geopandas as gpd
 import pandas as pd
 import shapely 
 import numpy as np
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString, Point, Polygon, MultiPolygon
 from packaging.version import Version
 
 """
