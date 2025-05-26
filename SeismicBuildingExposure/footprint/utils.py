@@ -644,3 +644,29 @@ def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,get_a:bool=True,get_b:boo
         return L1,a1,L2,a2 
     else:
         return L1,L2
+
+def center_of_mass(geoms: gpd.GeoDataFrame | gpd.GeoSeries,wall_height:float=3) -> gpd.GeoSeries:
+    geoms = geoms.copy()
+    geoms = geoms.geometry
+    
+    # Ensure projected CRS for proper area/length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.estimate_utm_crs())
+
+    # Compute weighted centroids
+    centroids = geoms.centroid
+    boundary_centroids = geoms.boundary.centroid
+
+    area = geoms.area
+    perimeter = geoms.boundary.length
+
+    weight_centroid = area
+    weight_boundary = perimeter * wall_height
+
+    total_weight = weight_centroid + weight_boundary
+
+    x = (centroids.x * weight_centroid + boundary_centroids.x * weight_boundary) / total_weight
+    y = (centroids.y * weight_centroid + boundary_centroids.y * weight_boundary) / total_weight
+
+    cm = gpd.GeoSeries([Point(xy) for xy in zip(x, y)], crs=geoms.crs)
+    return cm
