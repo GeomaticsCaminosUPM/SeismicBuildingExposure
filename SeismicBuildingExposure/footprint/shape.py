@@ -744,7 +744,7 @@ def gndt_italy_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     beta_4 = gndt_beta_4_eccentricity_ratio(geoms,directions=(dir_1_x, dir_1_y, dir_2_x, dir_2_y),main_shape_lengths=(a1,a2))
     beta_6 = gndt_beta_6_setback_slenderness(geoms,directions=(dir_1_x, dir_1_y, dir_2_x, dir_2_y),setback_lengths=(b1,b2))
 
-return pd.DataFrame({'beta_1_main_shape_slenderness':beta_1,'beta_2_setback_ratio':beta_2, 'beta_3_footprint_slenderness':beta_3, 'beta_4_eccentricity_ratio':beta_4, 'beta_6_setback_slenderness':beta_6})
+    return pd.DataFrame({'beta_1_main_shape_slenderness':beta_1,'beta_2_setback_ratio':beta_2, 'beta_3_footprint_slenderness':beta_3, 'beta_4_eccentricity_ratio':beta_4, 'beta_6_setback_slenderness':beta_6})
     
 
     
