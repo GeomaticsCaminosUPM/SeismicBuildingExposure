@@ -14,7 +14,7 @@ from .utils import (
     calc_inertia_principal,
     get_angle,
     circunscribed_square,
-    center_of_stiffness,
+    center_of_mass,
     min_bbox,
     rectangle_to_directions,
     circunscribed_setback_length
@@ -245,11 +245,12 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
 
     geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
-    geoms['center_of_stiffness'] = center_of_stiffness(geoms)
+    geoms['center_of_mass'] = center_of_mass(geoms)
+    geoms['center_of_stiffness'] = geoms.geometry.boundary.centroid
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
     e_vect = geoms.geometry.apply(lambda geom: np.array([
-        geom.geometry.centroid.x - geom['center_of_stiffness'].x,
-        geom.geometry.centroid.y - geom['center_of_stiffness'].y
+        geom['center_of_mass'].x - geom['center_of_stiffness'].x,
+        geom['center_of_mass'].y - geom['center_of_stiffness'].y
     ]), axis=1)
     geoms = geoms.geometry
     # Compute magnitude of eccentricity vectors
@@ -346,12 +347,13 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
     inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
     
     geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
-    geoms['center_of_stiffness'] = center_of_stiffness(geoms)
+    geoms['center_of_stiffness'] = geoms.geometry.centroid
+    geoms['center_of_mass'] = center_of_mass(geoms)
     
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
     e_vect = geoms.geometry.apply(lambda geom: np.array([
-        geom.geometry.centroid.x - geom['center_of_stiffness'].x,
-        geom.geometry.centroid.y - geom['center_of_stiffness'].y
+        geoms['center_of_mass'].x - geom['center_of_stiffness'].x,
+        geoms['center_of_mass'].y - geom['center_of_stiffness'].y
     ]), axis=1)
     geoms = geoms.geometry
     
@@ -605,14 +607,15 @@ def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,directio
     else:
         L1,a1, L2,a2 = basic_lengths(geoms_holes_filled,get_b=False)
 
-    geoms['center_of_stiffness'] = center_of_stiffness(geoms)
+    geoms['center_of_stiffness'] = geoms.geometry.boundary.centroid
+    geoms['center_of_mass'] = center_of_mass(geoms)
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
     e_x = geoms.geometry.apply(lambda geom: np.array(
-        geom.geometry.centroid.x - geom['center_of_stiffness'].x
+        geoms['center_of_mass'].x - geom['center_of_stiffness'].x
     ), axis=1)
     
     e_y = geoms.geometry.apply(lambda geom: np.array(
-        geom.geometry.centroid.y - geom['center_of_stiffness'].y
+        geoms['center_of_mass'].y - geom['center_of_stiffness'].y
     ), axis=1)
 
     e_1 = dir_1_x * e_x + dir_1_y * e_y
