@@ -13,6 +13,7 @@ from .utils import (
     calc_inertia_all,
     calc_inertia_principal,
     get_angle,
+    get_angle_90,
     center_of_mass,
     min_bbox,
     rectangle_to_directions,
