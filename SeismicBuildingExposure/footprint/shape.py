@@ -434,8 +434,87 @@ def asce_7_setback_ratio(geoms:gpd.GeoDataFrame) -> list:
     
     return setback_ratio
 
+def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        
+    geoms['geom_id'] = geoms.index.copy()
+
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+
+    rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+    rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
+    dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
+
+    geoms['dir_1_x'] = dir_1_x
+    geoms['dir_1_y'] = dir_1_y
+    geoms['dir_2_x'] = dir_2_x
+    geoms['dir_2_y'] = dir_2_y
+    geoms['dir_1'] = geoms.apply(lambda x: np.array([x['dir_1_x'],x['dir_1_y']]),axis=1)
+    geoms['dir_2'] = geoms.apply(lambda x: np.array([x['dir_2_x'],x['dir_2_y']]),axis=1)
+
+    geoms = explode_exterior_and_interior_rings(geoms)
+
+    geoms = geoms.loc[geoms.geometry.is_empty == False]
+
+    geoms = geoms.explode(index_parts=False).reset_index(drop=True)
+
+    geoms = explode_edges(geoms,min_length=0)
+
+    geoms[['edge_center','normal_vector']] = geoms.apply(lambda x: pd.Series(get_normal(x['edges'],scale=0)),axis=1)
+
+    geoms['angle_1'] = geoms.apply(lambda x: pd.Series(get_angle_90(x['dir_1'],x['normal_vector'])),axis=1)
+    geoms['angle_2'] = geoms.apply(lambda x: pd.Series(get_angle_90(x['dir_2'],x['normal_vector'])),axis=1)
+    geoms['angle'] = geoms[['angle_1','angle_2']].min(axis=1)
+    geoms['length'] = geoms['edges'].length
+    geoms['angle'] = geoms['angle'] * geoms['length']
+    geoms = geoms.groupby('geom_id').agg({'angle':'sum','length':'sum'})
+    geoms['angle'] = geoms['angle'] / geoms['length']
+    return list(geoms['angle'])
 
 def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+        
+    geoms_holes_filled = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )    
+
+    return list(geoms_holes_filled.difference(geoms.geometry).area / geoms_holes_filled.area)
+
+def asce_7_torsional_ratio(geoms):
+    return list(geoms.index)
+
+def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
+    geoms = geoms.copy()
+    if type(geoms) is gpd.GeoSeries:
+        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+            
+    # Ensure the geometries are in a projected CRS for accurate area and length calculations
+    if not geoms.crs.is_projected:
+        geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
+     
+    setback_ratio_results = asce_7_setback_ratio(geoms)
+    hole_ratio_results = asce_7_hole_ratio(geoms)
+    angle = asce_7_parallelity_angle(geoms) 
+    torsion = asce_7_torsional_ratio(geoms)
+    
+    result_df = pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results,'parallelity_angle':angle,'torsional_ratio':torsion})
+    result_df.index = geoms.index
+         
+    return result_df
+
+def NTC_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+    return asce_7_setback_ratio(geoms) 
+    
+def NTC_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -496,8 +575,7 @@ def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     hole_ratio = list(hole_ratio['hole_ratio'])
     return hole_ratio
 
-
-def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
+def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -506,16 +584,14 @@ def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
      
-    setback_ratio_results = setback_ratio(geoms)
-    hole_ratio_results = hole_ratio(geoms)
-
+    setback_ratio_results = NTC_setback_ratio(geoms)
+    hole_ratio_results = NTC_hole_ratio(geoms)
+    
     result_df = pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results})
     result_df.index = geoms.index
          
     return result_df
 
-def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
-    return asce_7_df(geoms)
 
 def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
