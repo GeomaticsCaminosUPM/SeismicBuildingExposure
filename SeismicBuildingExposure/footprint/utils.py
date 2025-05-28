@@ -546,7 +546,7 @@ def rectangle_to_directions(rectangles:gpd.GeoDataFrame|gpd.GeoSeries,normalize:
         
     return list(coords['dir_1_x']), list(coords['dir_1_y']), list(coords['dir_2_x']), list(coords['dir_2_y'])
 
-def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
+def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0):
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
@@ -563,6 +563,7 @@ def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     setbacks['dir_2_x'] = dir_2_x
     setbacks['dir_2_y'] = dir_2_y
     setbacks = setbacks.explode('geometry',ignore_index=True)
+    setbacks = setbacks.loc[setbacks.geometry.area > min_area]
     dir_1_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_x'])
     dir_1_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_y'])
     dir_2_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_x'])
@@ -575,6 +576,11 @@ def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     setbacks['b2'] = 0.
     if len(b2) > 0:
         setbacks.loc[setbacks.geometry.is_empty==False,'b2'] = list(b2)
+
+    setbacks.loc[setbacks['b1'] < min_length,'b2'] = 0
+    setbacks.loc[setbacks['b1'] < min_length,'b1'] = 0
+    setbacks.loc[setbacks['b2'] < min_length,'b1'] = 0
+    setbacks.loc[setbacks['b2'] < min_length,'b2'] = 0
 
     setbacks = setbacks.groupby(setbacks['orig_id'])[['b1','b2']].agg("max")
     return list(setbacks['b1']), list(setbacks['b2'])
@@ -617,7 +623,7 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
     else:
         return circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=False) 
 
-def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,get_a:bool=True,get_b:bool=True):
+def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,get_a:bool=True,get_b:bool=True):
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -632,7 +638,7 @@ def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,get_a:bool=True,get_b:boo
 
     L1, L2 = min_bbox(geoms,return_length=True)
     if get_b:
-        b1, b2 = circunscribed_setback_length(geoms)
+        b1, b2 = circunscribed_setback_length(geoms,min_length=min_length,min_area=min_area)
     if get_a:
         a1, a2 = maximum_inscribed_square(geoms,return_length=True)
 
