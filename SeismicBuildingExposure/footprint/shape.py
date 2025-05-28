@@ -18,7 +18,8 @@ from .utils import (
     min_bbox,
     rectangle_to_directions,
     circunscribed_setback_length,
-    circunscribed_rectangle
+    circunscribed_rectangle,
+    basic_lengths
 )
 
 
@@ -415,7 +416,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
 
 
 
-def asce_7_setback_ratio(geoms:gpd.GeoDataFrame) -> list:
+def asce_7_setback_ratio(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:float=0) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -429,7 +430,7 @@ def asce_7_setback_ratio(geoms:gpd.GeoDataFrame) -> list:
         lambda x: Polygon(x.exterior)
     )
 
-    L1,b1, L2,b2 = basic_lengths(geoms,get_a=False)
+    L1,b1, L2,b2 = basic_lengths(geoms,get_a=False,min_length=min_length,min_area=min_area)
     setback_ratio = list(np.minimum(np.array(b1) / np.array(L1),
               np.array(b2) / np.array(L2)))  
     
@@ -714,7 +715,7 @@ def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,directio
     beta_4 = list(e/a)
     return list(beta_4)
     
-def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,directions:tuple=None,setback_lengths:tuple=None) -> list:
+def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,directions:tuple=None,setback_lengths:tuple=None) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -750,7 +751,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,directi
     if setbacks_lengths is not None:
         b1,b2 = setbacks_lengths
     else:
-        b1, b2 = circunscribed_setback_length(geoms)
+        b1, b2 = circunscribed_setback_length(geoms,min_length=min_length,min_area=min_area)
 
     dir_x = [dir_1_x,dir_2_x]
     dir_y = [dir_1_y,dir_2_y]
@@ -780,7 +781,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,directi
     setback_slenderness = list(setback_slenderness['setback_slenderness'])
     return setback_slenderness
 
-def gndt_italy_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
+def gndt_italy_df(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:float=0) -> pd.DataFrame:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -793,7 +794,7 @@ def gndt_italy_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
         lambda x: Polygon(x.exterior)
     )    
      
-    L1,a1,b1, L2,a2,b2 = basic_lengths(geoms_holes_filled)
+    L1,a1,b1, L2,a2,b2 = basic_lengths(geoms_holes_filled,min_length=min_length,min_area=min_area)
     df = pd.DataFrame({
         'L1': L1, 'a1': a1, 'b1': b1,
         'L2': L2, 'a2': a2, 'b2': b2
@@ -819,7 +820,7 @@ def gndt_italy_df(geoms:gpd.GeoDataFrame) -> pd.DataFrame:
     dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
     
     beta_4 = gndt_beta_4_eccentricity_ratio(geoms,directions=(dir_1_x, dir_1_y, dir_2_x, dir_2_y),main_shape_lengths=(a1,a2))
-    beta_6 = gndt_beta_6_setback_slenderness(geoms,directions=(dir_1_x, dir_1_y, dir_2_x, dir_2_y),setback_lengths=(b1,b2))
+    beta_6 = gndt_beta_6_setback_slenderness(geoms,min_length=min_length,min_area=min_area,directions=(dir_1_x, dir_1_y, dir_2_x, dir_2_y),setback_lengths=(b1,b2))
 
     return pd.DataFrame({'beta_1_main_shape_slenderness':beta_1,'beta_2_setback_ratio':beta_2, 'beta_3_footprint_slenderness':beta_3, 'beta_4_eccentricity_ratio':beta_4, 'beta_6_setback_slenderness':beta_6})
     
