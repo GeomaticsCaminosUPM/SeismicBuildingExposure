@@ -563,7 +563,7 @@ def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length
     setbacks['dir_2_x'] = dir_2_x
     setbacks['dir_2_y'] = dir_2_y
     setbacks = setbacks.explode('geometry',ignore_index=True)
-    setbacks = setbacks.loc[setbacks.geometry.area > min_area]
+    setbacks = setbacks.loc[(1 - (setbacks.geometry.area/setbacks.geometry.convex_hull.area)) > min_area]
     dir_1_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_x'])
     dir_1_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_y'])
     dir_2_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_x'])
