@@ -39,12 +39,12 @@ Predicts the structural system of a building using the data extracted from the *
 
 The **data** module is based on the **GeoVisionDataset** library and provides functions adapted to create building footprint datasets using publically available datasources.
 
-### 4. footprint 
+### 4. fooptrint 
 
 This module is divided in 2:
 
 - **position**: Relative position of the building (in a row, on a corner, isolated, etc.)
-- **irregularity**: Footprint irregularity according to international building codes.
+- **shape**: Footprint shape and irregularity according to international building codes.
 
 ### 5. height 
 
