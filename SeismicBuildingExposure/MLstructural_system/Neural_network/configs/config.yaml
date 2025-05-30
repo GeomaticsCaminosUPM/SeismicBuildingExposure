@@ -1,0 +1,12 @@
+defaults:
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+
+
+# Model configurations
+model_config:
+  model_name: VerySimpleNN  # Change this to the desired model class name
+  optimizer: SGD           # Options: SGD, Adam
+  lr: 0.01                # Learning rate
+  momentum: 0.9           # Momentum (used only for SGD)
+  num_epochs: 50          # Number of training epochs

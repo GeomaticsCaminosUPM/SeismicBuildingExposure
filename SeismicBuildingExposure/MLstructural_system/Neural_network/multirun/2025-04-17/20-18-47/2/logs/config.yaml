@@ -1,0 +1,6 @@
+model_config:
+  model_name: VerySimpleNN
+  optimizer: SGD
+  lr: 0.01
+  momentum: 0.9
+  num_epochs: 1000
