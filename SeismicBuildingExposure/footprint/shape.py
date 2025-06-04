@@ -491,9 +491,6 @@ def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
     return list(geoms_holes_filled.difference(geoms.geometry).area / geoms_holes_filled.area)
 
-def asce_7_torsional_ratio(geoms):
-    return list(geoms.index)
-
 def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
@@ -506,9 +503,8 @@ def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     setback_ratio_results = asce_7_setback_ratio(geoms)
     hole_ratio_results = asce_7_hole_ratio(geoms)
     angle = asce_7_parallelity_angle(geoms) 
-    torsion = asce_7_torsional_ratio(geoms)
     
-    result_df = pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results,'parallelity_angle':angle,'torsional_ratio':torsion})
+    result_df = pd.DataFrame({'setback_ratio':setback_ratio_results,'hole_ratio':hole_ratio_results,'parallelity_angle':angle})
     result_df.index = geoms.index
          
     return result_df
