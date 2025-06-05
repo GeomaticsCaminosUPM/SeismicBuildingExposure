@@ -551,6 +551,10 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
+    geoms = geoms.geometry.apply(
+        lambda x: Polygon(x.exterior)
+    )
+
     rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
     coords = rectangles.get_coordinates()
     coords['L'] = np.sqrt(
