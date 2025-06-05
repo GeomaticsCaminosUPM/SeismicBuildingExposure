@@ -549,9 +549,10 @@ def rectangle_to_directions(rectangles:gpd.GeoDataFrame|gpd.GeoSeries,normalize:
 
 def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,oposite_side:bool=False):
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
-
+    
     geoms = geoms.geometry.apply(
         lambda x: Polygon(x.exterior)
     )
@@ -653,6 +654,7 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
 
 def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
             
