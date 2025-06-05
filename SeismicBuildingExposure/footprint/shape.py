@@ -221,15 +221,15 @@ def compactness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms_holes_filled = geoms.geometry.apply(
         lambda x: shapely.Polygon(x.exterior)
     )
-    return list(1 - (geoms_holes_filled.convex_hull.area - geoms_holes_filled.area)/geoms_holes_filled.area)
-    #setbacks = gpd.GeoDataFrame({},geometry=geoms.geometry.convex_hull.difference(geoms_holes_filled.geometry),crs=geoms.crs)
-    #setbacks['orig_id'] = setbacks.index
-    #setbacks['footprint_area'] = geoms.area
-    #setbacks = setbacks.explode('geometry',ignore_index=True)
-    #setbacks['area'] = setbacks.area 
-    #setbacks = setbacks.groupby(setbacks['orig_id'])[['area','footprint_area']].agg("max")
-    #setbacks['area'] /= setbacks['footprint_area']
-    #return list(1 - setbacks['area'])
+    #return list(1 - (geoms_holes_filled.convex_hull.area - geoms_holes_filled.area)/geoms_holes_filled.area)
+    setbacks = gpd.GeoDataFrame({},geometry=geoms.geometry.convex_hull.difference(geoms_holes_filled.geometry),crs=geoms.crs)
+    setbacks['orig_id'] = setbacks.index
+    setbacks['footprint_area'] = geoms.area
+    setbacks = setbacks.explode('geometry',ignore_index=True)
+    setbacks['area'] = setbacks.area 
+    setbacks = setbacks.groupby(setbacks['orig_id'])[['area','footprint_area']].agg("max")
+    setbacks['area'] /= setbacks['footprint_area']
+    return list(1 - setbacks['area'])
 
 def eurocode_8_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     ratio = eurocode_8_df(geoms) 
