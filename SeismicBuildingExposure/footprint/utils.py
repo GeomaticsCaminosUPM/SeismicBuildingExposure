@@ -546,11 +546,18 @@ def rectangle_to_directions(rectangles:gpd.GeoDataFrame|gpd.GeoSeries,normalize:
         
     return list(coords['dir_1_x']), list(coords['dir_1_y']), list(coords['dir_2_x']), list(coords['dir_2_y'])
 
-def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0):
+def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,oposite_side:bool=False):
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
     rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
+    coords = rectangles.get_coordinates()
+    coords['L'] = np.sqrt(
+        (coords['x'].shift(+1) - coords['x'])**2 +
+        (coords['y'].shift(+1) - coords['y'])**2
+    )
+    coords = coords.groupby(coords.index)['L'].agg(list).apply(lambda x: pd.Series({'L1': x[1], 'L2': x[2]}))
+
     rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
     dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
     geoms_holes_filled = geoms.geometry.apply(
@@ -562,6 +569,8 @@ def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length
     setbacks['dir_1_y'] = dir_1_y
     setbacks['dir_2_x'] = dir_2_x
     setbacks['dir_2_y'] = dir_2_y
+    setbacks['L1'] = list(coords['L1'])
+    setbacks['L2'] = list(coords['L2'])
     setbacks = setbacks.explode('geometry',ignore_index=True)
     
     mask = (1 - (setbacks.geometry.area / setbacks.geometry.convex_hull.area)) > min_area
@@ -585,9 +594,18 @@ def circunscribed_setback_length(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length
     setbacks.loc[setbacks['b1'] < min_length,'b1'] = 0
     setbacks.loc[setbacks['b2'] < min_length,'b1'] = 0
     setbacks.loc[setbacks['b2'] < min_length,'b2'] = 0
-
-    setbacks = setbacks.groupby(setbacks['orig_id'])[['b1','b2']].agg("max")
-    return list(setbacks['b1']), list(setbacks['b2'])
+    if oposite_side:
+        setbacks['b1'] /= setbacks['L2']
+        setbacks['b2'] /= setbacks['L1']
+    else:
+        setbacks['b1'] /= setbacks['L1']
+        setbacks['b2'] /= setbacks['L2']
+    
+    setbacks['b'] = setbacks[['b1','b2']].max()
+    setbacks = setbacks.groupby(setbacks['orig_id'])[['b']].agg("max")
+    return list(setbacks['b'])
+    #setbacks = setbacks.groupby(setbacks['orig_id'])[['b1','b2']].agg("max")
+    #return list(setbacks['b1']), list(setbacks['b2'])
 
 def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:bool=False,resolution:int=16):
     if geoms.crs.is_projected == False:
@@ -627,7 +645,7 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
     else:
         return circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=False) 
 
-def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,get_a:bool=True,get_b:bool=True):
+def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
@@ -641,19 +659,10 @@ def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     )  
 
     L1, L2 = min_bbox(geoms,return_length=True)
-    if get_b:
-        b1, b2 = circunscribed_setback_length(geoms,min_length=min_length,min_area=min_area)
-    if get_a:
-        a1, a2 = maximum_inscribed_square(geoms,return_length=True)
+    a1, a2 = maximum_inscribed_square(geoms,return_length=True)
 
-    if get_a and get_b:
-        return L1,a1,b1,L2,a2,b2
-    elif get_b:
-        return L1,b1,L2,b2
-    elif get_a:
-        return L1,a1,L2,a2 
-    else:
-        return L1,L2
+    return L1,a1,L2,a2 
+
 
 def center_of_mass(geoms: gpd.GeoDataFrame | gpd.GeoSeries,wall_height:float=3) -> gpd.GeoSeries:
     geoms = geoms.copy()
