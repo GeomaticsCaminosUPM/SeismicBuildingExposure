@@ -43,7 +43,7 @@ def convex_hull_momentum(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     """
     geoms_copy = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
         
     geoms_copy['geom_id'] = geoms_copy.index.copy()
 
@@ -104,7 +104,7 @@ def polsby_popper(geoms:gpd.GeoDataFrame|gpd.GeoSeries, fill_holes:bool=True) ->
     """
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -132,7 +132,7 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     """
     geoms = geoms.copy() 
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -144,7 +144,7 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def circunsribed_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy() 
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -167,7 +167,7 @@ def circunsribed_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def min_bbox_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     geoms = geoms.copy() 
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -192,7 +192,7 @@ def inertia_circle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     """
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
     
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -206,7 +206,7 @@ def inertia_circle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def compactness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -237,7 +237,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
 
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -246,7 +246,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     # Compute principal moments of inertia and their corresponding eigenvectors
     inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
 
-    geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+    geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
     geoms['center_of_mass'] = center_of_mass(geoms)
     geoms['center_of_stiffness'] = geoms.geometry.boundary.centroid
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
@@ -339,7 +339,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
                
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -348,7 +348,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
     # Compute principal moments of inertia and their corresponding eigenvectors
     inertia_df = calc_inertia_principal(geoms, principal_dirs=True)
     
-    geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+    geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
     geoms['center_of_stiffness'] = geoms.geometry.centroid
     geoms['center_of_mass'] = center_of_mass(geoms)
     
@@ -419,7 +419,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
 def asce_7_setback_ratio(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:float=0) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -435,7 +435,7 @@ def asce_7_setback_ratio(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:floa
 def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
         
     geoms['geom_id'] = geoms.index.copy()
 
@@ -475,7 +475,7 @@ def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -490,7 +490,7 @@ def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -511,7 +511,7 @@ def NTC_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def NTC_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -572,7 +572,7 @@ def NTC_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -590,7 +590,7 @@ def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
 def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -619,7 +619,7 @@ def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> 
 def gndt_beta_2_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -638,7 +638,7 @@ def gndt_beta_3_footprint_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> l
 def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
@@ -770,7 +770,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
 def gndt_italy_df(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:float=0) -> pd.DataFrame:
     geoms = geoms.copy()
     if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms,crs=geoms.crs)
+        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
