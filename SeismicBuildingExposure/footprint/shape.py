@@ -228,9 +228,7 @@ def compactness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     setbacks['area'] = setbacks.area 
     setbacks = setbacks.groupby(setbacks['orig_id'])[['area','footprint_area']].agg("max")
     setbacks['area'] /= setbacks['footprint_area']
-    geoms['area'] = 0
-    geoms.loc[setbacks.index,'area'] = setbacks['area']
-    return list(1 - geoms['area'])
+    return list(1 - setbacks['area'])
 
 def eurocode_8_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     ratio = eurocode_8_df(geoms) 
