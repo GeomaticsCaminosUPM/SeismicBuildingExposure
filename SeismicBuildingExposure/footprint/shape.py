@@ -448,7 +448,7 @@ def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
         
-    geoms['geom_id'] = geoms.index.copy()
+    geoms['orig_id'] = geoms.index.copy()
 
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
@@ -479,7 +479,7 @@ def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms['angle'] = geoms[['angle_1','angle_2']].min(axis=1)
     geoms['length'] = geoms['edges'].length
     geoms['angle'] = geoms['angle'] * geoms['length']
-    geoms = geoms.groupby('geom_id').agg({'angle':'sum','length':'sum'})
+    geoms = geoms.groupby('orig_id').agg({'angle':'sum','length':'sum'})
     geoms['angle'] = geoms['angle'] / geoms['length']
     return list(geoms['angle'])
 
@@ -782,7 +782,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
     
     setbacks['setback_slenderness'] = setbacks[['setback_slenderness_1','setback_slenderness_2']].min(axis=1)
     setback_slenderness = setbacks.loc[setbacks.groupby('index')['setback_slenderness'].idxmax(),['index','setback_slenderness']]
-    setback_slenderness = geoms.merge(setback_slenderness, left_index=True, right_on='index', how='left').fillna({'setback_slenderness': 0})
+    setback_slenderness = geoms.merge(setback_slenderness, left_index=True, right_on='orig_id', how='left').fillna({'setback_slenderness': 0})
     setback_slenderness = list(setback_slenderness['setback_slenderness'])
     return setback_slenderness
 
