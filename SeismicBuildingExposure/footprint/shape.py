@@ -481,7 +481,7 @@ def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
     geoms['angle_1'] = geoms.apply(lambda x: pd.Series(get_angle_90(x['dir_1'],x['normal_vector'])),axis=1)
     geoms['angle_2'] = geoms.apply(lambda x: pd.Series(get_angle_90(x['dir_2'],x['normal_vector'])),axis=1)
-    geoms['angle'] = geoms[['angle_1','angle_2']].min(axis=1)
+    geoms['angle'] = geoms[['angle_1','angle_2']].min(axis=1) * 180/np.pi
     geoms['length'] = geoms['edges'].length
     geoms['angle'] = geoms['angle'] * geoms['length']
     geoms = geoms.groupby('orig_id').agg({'angle':'sum','length':'sum'})
