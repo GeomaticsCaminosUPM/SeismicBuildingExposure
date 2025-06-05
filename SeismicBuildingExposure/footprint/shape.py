@@ -250,7 +250,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms['center_of_mass'] = center_of_mass(geoms)
     geoms['center_of_stiffness'] = geoms.geometry.boundary.centroid
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
-    e_vect = geoms.geometry.apply(lambda geom: np.array([
+    e_vect = geoms.apply(lambda geom: np.array([
         geom['center_of_mass'].x - geom['center_of_stiffness'].x,
         geom['center_of_mass'].y - geom['center_of_stiffness'].y
     ]), axis=1)
