@@ -42,6 +42,7 @@ def convex_hull_momentum(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
         list: A list with the same order as geoms which contains the computed irregularity index for each geometry.
     """
     geoms_copy = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
         
@@ -103,6 +104,7 @@ def polsby_popper(geoms:gpd.GeoDataFrame|gpd.GeoSeries, fill_holes:bool=True) ->
         list: A list in the same order as geoms which contains the calculated Polsby-Popper index for each geometry.
     """
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
@@ -143,6 +145,7 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
 def circunsribed_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy() 
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -166,6 +169,7 @@ def circunsribed_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
 def min_bbox_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     geoms = geoms.copy() 
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -191,6 +195,7 @@ def inertia_circle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
         list: A list with the same order as geoms which contains the calculated Polsby-Popper index for each geometry.
     """
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
     
@@ -205,6 +210,7 @@ def inertia_circle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
 def compactness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -236,6 +242,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     import scipy 
 
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -338,6 +345,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
     import scipy 
                
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -418,6 +426,7 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
 
 def asce_7_setback_ratio(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:float=0) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -434,6 +443,8 @@ def asce_7_setback_ratio(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:floa
 
 def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
         
@@ -474,6 +485,7 @@ def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
 def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -489,6 +501,7 @@ def asce_7_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
 def asce_7_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -510,6 +523,7 @@ def NTC_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     
 def NTC_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -571,6 +585,7 @@ def NTC_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
 
 def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -589,6 +604,7 @@ def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
 
 def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -618,6 +634,7 @@ def gndt_beta_1_main_shape_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> 
     
 def gndt_beta_2_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -637,6 +654,7 @@ def gndt_beta_3_footprint_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> l
     
 def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
@@ -686,6 +704,7 @@ def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list
     
 def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0) -> list:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
@@ -769,6 +788,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
 
 def gndt_italy_df(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:float=0) -> pd.DataFrame:
     geoms = geoms.copy()
+    geoms = geoms.reset_index(drop=True)
     if type(geoms) is gpd.GeoSeries:
         geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
             
