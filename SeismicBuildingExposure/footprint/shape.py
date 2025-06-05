@@ -222,7 +222,7 @@ def eurocode_8_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     ratio = eurocode_8_df(geoms) 
     return list(ratio['eccentricity_ratio'])
 
-def eurocode_8_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
+def eurocode_8_radius_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     ratio = eurocode_8_df(geoms) 
     return list(ratio['radius_ratio'])
     
