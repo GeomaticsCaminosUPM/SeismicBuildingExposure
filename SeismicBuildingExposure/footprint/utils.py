@@ -608,7 +608,7 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
         setbacks['b1'] /= setbacks['L1']
         setbacks['b2'] /= setbacks['L2']
     
-    setbacks['b'] = setbacks[['b1', 'b2']].max(axis=1)
+    setbacks['b'] = setbacks[['b1', 'b2']].min(axis=1)
     setbacks = setbacks.groupby(setbacks['orig_id'])[['b']].agg("max")
     return list(setbacks['b'])
     #setbacks = setbacks.groupby(setbacks['orig_id'])[['b1','b2']].agg("max")
