@@ -133,9 +133,7 @@ def inertia_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
         list: A list with the same order as geoms which contains the calculated Polsby-Popper index for each geometry.
     """
     geoms = geoms.copy() 
-    if type(geoms) is gpd.GeoSeries:
-        geoms = gpd.GeoDataFrame({},geometry=geoms.geometry,crs=geoms.crs)
-            
+
     # Ensure the geometries are in a projected CRS for accurate area and length calculations
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
