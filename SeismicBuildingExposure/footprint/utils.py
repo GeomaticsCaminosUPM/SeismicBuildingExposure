@@ -525,6 +525,7 @@ def rectangle_to_directions(rectangles:gpd.GeoDataFrame|gpd.GeoSeries,normalize:
     if rectangles.crs.is_projected == False:
         rectangles = rectangles.to_crs(rectangles.geometry.estimate_utm_crs())
 
+    rectangles = rectangles.reset_index(drop=True)
     coords = rectangles.get_coordinates()
     coords['dir_x'] = coords['x'].shift(+1) - coords['x']
     coords['dir_y'] = coords['y'].shift(+1) - coords['y']
