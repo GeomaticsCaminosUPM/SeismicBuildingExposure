@@ -330,7 +330,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     angle_eccentricity[angle_eccentricity < -np.pi/2] += np.pi
     
     # Convert radians to degrees and invert direction if needed
-    angle_eccentricity = np.degrees(angle_eccentricity)
+    angle_eccentricity = -np.degrees(angle_eccentricity)
 
     # Rotate reference frame by +90 degrees (pi/2 radians)
     angle_slenderness = angle_vect_1
@@ -343,7 +343,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     angle_slenderness[angle_slenderness < -np.pi / 2] += np.pi
     
     # Convert radians to degrees
-    angle_slenderness = np.degrees(angle_slenderness)
+    angle_slenderness = -np.degrees(angle_slenderness)
 
     result_df = pd.DataFrame({
         'eccentricity_ratio':eccentricity_ratio,
@@ -431,12 +431,19 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
     eccentricity_i = np.abs(df['e_magnitude'] * np.cos(df['x_opt'] - df['b']))
     dimension_i = np.sqrt(df['area']) * ((df['c'] + df['r'] * np.cos(-2*df['x_opt'])) / (df['c'] - df['r'] * np.cos(-2*df['x_opt']))) ** 0.25
     eccentricity_ratio = eccentricity_i / dimension_i
+
     vect_1 = np.array([*df['vect_1']])
-    angle = np.abs(np.arctan2(vect_1[:,1],vect_1[:,0]) + df['x_opt'] + np.pi/2) # facing north
-    angle[angle > 2*np.pi] -= 2*np.pi 
-    angle[angle > np.pi/2] -= np.pi
-    angle *= -180/np.pi  # invert to rotate north-east
-    angle[angle>90] -= 180
+    angle_rad = np.arctan2(vect_1[:, 1], vect_1[:, 0]) + df['x_opt'] + np.pi/2  # shift so 'north' = 0
+    
+    # Normalize to [-pi, pi]
+    angle_rad = (angle_rad + np.pi) % (2 * np.pi) - np.pi
+    
+    # Restrict to [-pi/2, pi/2]
+    angle_rad[angle_rad > np.pi/2] -= np.pi
+    angle_rad[angle_rad < -np.pi/2] += np.pi
+    
+    # Convert to degrees and invert as needed
+    angle = -np.degrees(angle_rad)
     
     result_df = pd.DataFrame({'eccentricity_ratio' : eccentricity_ratio, 'angle' : angle})
     result_df.index = geoms.index
