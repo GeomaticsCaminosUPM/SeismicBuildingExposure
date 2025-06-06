@@ -319,19 +319,31 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     compactness_result = compactness(geoms) 
 
     vect_1 = np.array([*df['vect_1']])
-    angle_vect_1 = np.arctan2(vect_1[:,1],vect_1[:,0]) 
-    angle_eccentricity = np.abs(angle_vect_1 + df['x_opt'] + np.pi/2) # facing north
-    angle_eccentricity[angle_eccentricity > 2*np.pi] -= 2*np.pi
-    angle_eccentricity[angle_eccentricity > np.pi/2] -= np.pi 
-    angle_eccentricity *= -180 / np.pi # invert to rotate north-east
-    angle_eccentricity[angle_eccentricity>90] -= 180
+    angle_vect_1 = np.arctan2(vect_1[:,1], vect_1[:,0])  # in radians
+    angle_eccentricity = angle_vect_1 + df['x_opt'] + np.pi/2  # facing north
+    
+    # Wrap angles into [-pi, pi]
+    angle_eccentricity = (angle_eccentricity + np.pi) % (2 * np.pi) - np.pi
+    
+    # Fold angles outside [-pi/2, pi/2] back into the range
+    angle_eccentricity[angle_eccentricity > np.pi/2] -= np.pi
+    angle_eccentricity[angle_eccentricity < -np.pi/2] += np.pi
+    
+    # Convert radians to degrees and invert direction if needed
+    angle_eccentricity = np.degrees(angle_eccentricity)
 
-    angle_slenderness = np.abs(angle_vect_1 + np.pi/2) # facing north 
-    angle_slenderness[angle_slenderness > 2*np.pi] -= 2*np.pi
-    angle_slenderness[angle_slenderness > np.pi/2] -= np.pi 
-    angle_slenderness *= -180 / np.pi # invert to rotate north-east
-    angle_slenderness += 90 
-    angle_slenderness[angle_slenderness>90] -= 180
+    # Rotate reference frame by +90 degrees (pi/2 radians)
+    angle_slenderness = angle_vect_1 + np.pi / 2
+    
+    # Normalize angles to the range [-pi, pi]
+    angle_slenderness = (angle_slenderness + np.pi) % (2 * np.pi) - np.pi
+    
+    # Now restrict to [-pi/2, pi/2]
+    angle_slenderness[angle_slenderness > np.pi / 2] -= np.pi
+    angle_slenderness[angle_slenderness < -np.pi / 2] += np.pi
+    
+    # Convert radians to degrees
+    angle_slenderness = np.degrees(angle_slenderness)
 
     result_df = pd.DataFrame({
         'eccentricity_ratio':eccentricity_ratio,
