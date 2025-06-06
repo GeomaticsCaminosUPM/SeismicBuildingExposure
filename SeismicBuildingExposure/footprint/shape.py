@@ -324,11 +324,14 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     angle_eccentricity[angle_eccentricity > 2*np.pi] -= 2*np.pi
     angle_eccentricity[angle_eccentricity > np.pi/2] -= np.pi 
     angle_eccentricity *= -180 / np.pi # invert to rotate north-east
+    angle_eccentricity[angle_eccentricity>90] -= 180
 
     angle_slenderness = np.abs(angle_vect_1 + np.pi/2) # facing north 
     angle_slenderness[angle_slenderness > 2*np.pi] -= 2*np.pi
     angle_slenderness[angle_slenderness > np.pi/2] -= np.pi 
     angle_slenderness *= -180 / np.pi # invert to rotate north-east
+    angle_slenderness += 90 
+    angle_slenderness[angle_slenderness>90] -= 180
 
     result_df = pd.DataFrame({
         'eccentricity_ratio':eccentricity_ratio,
@@ -421,7 +424,8 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
     angle[angle > 2*np.pi] -= 2*np.pi 
     angle[angle > np.pi/2] -= np.pi
     angle *= -180/np.pi  # invert to rotate north-east
-
+    angle[angle>90] -= 180
+    
     result_df = pd.DataFrame({'eccentricity_ratio' : eccentricity_ratio, 'angle' : angle})
     result_df.index = geoms.index
          
