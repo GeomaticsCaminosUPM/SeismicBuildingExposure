@@ -320,7 +320,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
 
     vect_1 = np.array([*df['vect_1']])
     angle_vect_1 = np.arctan2(vect_1[:,1], vect_1[:,0])  # in radians
-    angle_eccentricity = angle_vect_1 + df['x_opt'] + np.pi/2  # facing north
+    angle_eccentricity = angle_vect_1 + df['x_opt']
     
     # Wrap angles into [-pi, pi]
     angle_eccentricity = (angle_eccentricity + np.pi) % (2 * np.pi) - np.pi
@@ -333,7 +333,7 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     angle_eccentricity = np.degrees(angle_eccentricity)
 
     # Rotate reference frame by +90 degrees (pi/2 radians)
-    angle_slenderness = angle_vect_1 + np.pi / 2
+    angle_slenderness = angle_vect_1
     
     # Normalize angles to the range [-pi, pi]
     angle_slenderness = (angle_slenderness + np.pi) % (2 * np.pi) - np.pi
