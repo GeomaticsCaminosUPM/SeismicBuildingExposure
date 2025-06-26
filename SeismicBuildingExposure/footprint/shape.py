@@ -715,8 +715,8 @@ def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list
     e2 = dir_2_x * e_x + dir_2_y * e_y
     
     df = pd.DataFrame({
-        'e1': e1, 'a1': a1,
-        'e2': e2, 'a2': a2
+        'e1': e1, 'a1': a1, 'L1': L1,
+        'e2': e2, 'a2': a2, 'L2': L2
     })
     
     # Choose values based on where a1 > a2
