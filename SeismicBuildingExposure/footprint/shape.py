@@ -466,8 +466,8 @@ def asce_7_setback_ratio(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:floa
         lambda x: Polygon(x.exterior)
     )
 
-    setback_ratio = setback_ratio(geoms,min_length=min_length,min_area=min_area,oposite_side=False)
-    return setback_ratio
+    result = setback_ratio(geoms,min_length=min_length,min_area=min_area,oposite_side=False)
+    return result
 
 def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
     geoms = geoms.copy()
