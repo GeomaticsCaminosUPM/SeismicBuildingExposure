@@ -766,7 +766,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
     setbacks['L2'] = list(coords['L2'])
     setbacks = setbacks.explode('geometry',ignore_index=True)
     
-    mask = (1 - (setbacks.geometry.area / setbacks.geometry.convex_hull.area)) <= min_area
+    mask = (1 - (setbacks['polygon'].area / setbacks['polygon'].convex_hull.area)) <= min_area
     empty_polygons = [Polygon()] * mask.sum()
     setbacks.loc[mask, 'geometry'] = empty_polygons
 
