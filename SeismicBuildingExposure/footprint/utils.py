@@ -567,10 +567,8 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
 
     rectangles = gpd.GeoSeries(rectangles,crs=geoms.crs)
     dir_1_x, dir_1_y, dir_2_x, dir_2_y = rectangle_to_directions(rectangles,normalize=True)
-    geoms_holes_filled = geoms.geometry.apply(
-        lambda x: shapely.Polygon(x.exterior)
-    )
-    setbacks = gpd.GeoDataFrame({},geometry=geoms.geometry.convex_hull.difference(geoms_holes_filled.geometry),crs=geoms.crs)
+
+    setbacks = gpd.GeoDataFrame({'polygon':geoms},geometry=geoms.geometry.convex_hull.difference(geoms_holes_filled.geometry),crs=geoms.crs)
     setbacks['orig_id'] = setbacks.index
     setbacks['dir_1_x'] = dir_1_x
     setbacks['dir_1_y'] = dir_1_y
@@ -580,7 +578,7 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     setbacks['L2'] = list(coords['L2'])
     setbacks = setbacks.explode('geometry',ignore_index=True)
     
-    mask = (1 - (setbacks.geometry.area / setbacks.geometry.convex_hull.area)) <= min_area
+    mask = (1 - (setbacks['polygon'].area / setbacks['polygon'].convex_hull.area)) <= min_area
     empty_polygons = [Polygon()] * mask.sum()
     setbacks.loc[mask, 'geometry'] = empty_polygons
 
