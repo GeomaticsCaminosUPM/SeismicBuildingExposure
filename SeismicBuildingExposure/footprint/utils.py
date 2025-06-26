@@ -642,9 +642,10 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
         crs=geoms.crs
     )
 
-    hull = circles.boundary.intersection(geoms.geometry.boundary).convex_hull
-    print(hull[hull.geometry.convex_hull.area == 0])
-    
+    hull = circles.boundary.intersection(geoms.geometry.boundary).convex_hull.buffer(10**-3)
+    if len(hull[hull.area == 0]) > 0:
+        raise Exception(f"Inscribed circle is not touching the footprint boundary correclty {hull[hull.area == 0]}")
+        
     if return_length:
         a1, a2 = circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=True) 
         return a1, a2 
