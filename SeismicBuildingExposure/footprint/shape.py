@@ -751,7 +751,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
     )
     setbacks = gpd.GeoDataFrame(
         {
-            'orig_id':geoms.index,
+            'index':geoms.index,
             'polygon_with_holes':geoms.geometry,
             'polygon':geoms_holes_filled
         },
@@ -811,7 +811,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
     
     setbacks['setback_slenderness'] = setbacks[['setback_slenderness_1','setback_slenderness_2']].min(axis=1)
     setback_slenderness = setbacks.loc[setbacks.groupby('index')['setback_slenderness'].idxmax(),['index','setback_slenderness']]
-    setback_slenderness = geoms.merge(setback_slenderness, left_index=True, right_on='orig_id', how='left').fillna({'setback_slenderness': 0})
+    setback_slenderness = geoms.merge(setback_slenderness, left_index=True, right_on='index', how='left').fillna({'setback_slenderness': 0})
     setback_slenderness = list(setback_slenderness['setback_slenderness'])
     return setback_slenderness
 
