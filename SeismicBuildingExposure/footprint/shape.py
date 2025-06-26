@@ -797,10 +797,11 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
         setbacks['line_start_x'] = setbacks.geometry.centroid.x - setbacks[f'dir_{2-i}_x'] * (setbacks['distance'] + 1) 
         setbacks['line_start_y'] = setbacks.geometry.centroid.y - setbacks[f'dir_{2-i}_y'] * (setbacks['distance'] + 1) 
         setbacks['line_end_x'] = setbacks.geometry.centroid.x + setbacks[f'dir_{2-i}_x'] * (setbacks['distance'] + 1) 
-        setbacks['line_end_y'] = setbacks.geometry.centroid.y + setbacks[f'dir_{2-i}_y'] * (setbacks['distance'] + 1)    
+        setbacks['line_end_y'] = setbacks.geometry.centroid.y + setbacks[f'dir_{2-i}_y'] * (setbacks['distance'] + 1)
         setbacks['line'] = gpd.GeoSeries(setbacks.apply(lambda row: LineString(
             [(row['line_start_x'],row['line_start_y']),(row['line_end_x'],row['line_end_y'])]
         ),axis=1),crs=setbacks.crs)
+        print(setbacks[setbacks['line'].length == 0])
         setbacks['intersection'] = setbacks['polygon'].intersection(setbacks['line'])
         setbacks = setbacks.explode(column='intersection').reset_index(drop=True)
         setbacks = setbacks.loc[setbacks['intersection'].distance(setbacks.centroid) < 10**-3]
