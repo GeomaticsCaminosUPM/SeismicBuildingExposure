@@ -580,7 +580,7 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     setbacks['L2'] = list(coords['L2'])
     setbacks = setbacks.explode('geometry',ignore_index=True)
     
-    mask = (1 - (setbacks.geometry.area / setbacks.geometry.convex_hull.area)) > min_area
+    mask = (1 - (setbacks.geometry.area / setbacks.geometry.convex_hull.area)) <= min_area
     empty_polygons = [Polygon()] * mask.sum()
     setbacks.loc[mask, 'geometry'] = empty_polygons
 
