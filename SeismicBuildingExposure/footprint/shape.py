@@ -703,12 +703,12 @@ def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list
     geoms['center_of_stiffness'] = geoms.geometry.boundary.centroid
     geoms['center_of_mass'] = center_of_mass(geoms)
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
-    e_x = geoms.geometry.apply(lambda geom: np.array(
-        geoms['center_of_mass'].x - geom['center_of_stiffness'].x
+    e_x = geoms.apply(lambda row: np.array(
+        row['center_of_mass'].x - row['center_of_stiffness'].x
     ), axis=1)
     
-    e_y = geoms.geometry.apply(lambda geom: np.array(
-        geoms['center_of_mass'].y - geom['center_of_stiffness'].y
+    e_y = geoms.apply(lambda row: np.array(
+        row['center_of_mass'].y - row['center_of_stiffness'].y
     ), axis=1)
 
     e_1 = dir_1_x * e_x + dir_1_y * e_y
