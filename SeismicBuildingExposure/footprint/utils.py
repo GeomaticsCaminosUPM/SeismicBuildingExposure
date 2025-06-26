@@ -644,6 +644,7 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
 
     hull = circles.boundary.intersection(geoms.geometry.boundary).convex_hull
     print(hull[hull.is_empty])
+    print(hull[hull.isna()])
     
     if return_length:
         a1, a2 = circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=True) 
