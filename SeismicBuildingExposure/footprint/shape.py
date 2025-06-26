@@ -262,9 +262,9 @@ def eurocode_8_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms['center_of_mass'] = center_of_mass(geoms)
     geoms['center_of_stiffness'] = geoms.geometry.boundary.centroid
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
-    e_vect = geoms.apply(lambda geom: np.array([
-        geom['center_of_mass'].x - geom['center_of_stiffness'].x,
-        geom['center_of_mass'].y - geom['center_of_stiffness'].y
+    e_vect = geoms.apply(lambda row: np.array([
+        row['center_of_mass'].x - row['center_of_stiffness'].x,
+        row['center_of_mass'].y - row['center_of_stiffness'].y
     ]), axis=1)
     geoms = geoms.geometry
     # Compute magnitude of eccentricity vectors
@@ -381,9 +381,9 @@ def codigo_sismico_costa_rica_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.Dat
     geoms['center_of_mass'] = center_of_mass(geoms)
     
     # Compute eccentricity vectors (difference between centroid and boundary centroid)
-    e_vect = geoms.geometry.apply(lambda geom: np.array([
-        geoms['center_of_mass'].x - geom['center_of_stiffness'].x,
-        geoms['center_of_mass'].y - geom['center_of_stiffness'].y
+    e_vect = geoms.apply(lambda row: np.array([
+        row['center_of_mass'].x - row['center_of_stiffness'].x,
+        row['center_of_mass'].y - row['center_of_stiffness'].y
     ]), axis=1)
     geoms = geoms.geometry
     
