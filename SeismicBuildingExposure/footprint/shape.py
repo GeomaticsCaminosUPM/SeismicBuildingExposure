@@ -711,8 +711,8 @@ def gndt_beta_4_eccentricity_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list
         row['center_of_mass'].y - row['center_of_stiffness'].y
     ), axis=1)
 
-    e_1 = dir_1_x * e_x + dir_1_y * e_y
-    e_2 = dir_2_x * e_x + dir_2_y * e_y
+    e1 = dir_1_x * e_x + dir_1_y * e_y
+    e2 = dir_2_x * e_x + dir_2_y * e_y
     
     df = pd.DataFrame({
         'e1': e1, 'a1': a1,
