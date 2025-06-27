@@ -459,7 +459,7 @@ def eq_circle_intertia(area):
     r = np.sqrt(area / np.pi)
     return 0.25*np.pi*r**4
 
-def circunscribed_rectangle(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_length:bool=False):
+def circunscribed_rectangle(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_lengths:bool=False):
     geometry = geoms.geometry.convex_hull.exterior
 
     df = pd.DataFrame({
@@ -474,7 +474,7 @@ def circunscribed_rectangle(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y
     df['pdirs_x_coords'] = df.apply(lambda row: (row['x'] * row['dir_2_y'] + row['y'] * (-row['dir_2_x'])) * 1 / (row['dir_1_x']*row['dir_2_y'] - row['dir_1_y']*row['dir_2_x']), axis=1)
     df['pdirs_y_coords'] = df.apply(lambda row: (row['x'] * (-row['dir_1_y']) + row['y'] * row['dir_1_x']) * 1 / (row['dir_1_x']*row['dir_2_y'] - row['dir_1_y']*row['dir_2_x']), axis=1)
 
-    if return_length:
+    if return_lengths:
         length_1 = df['pdirs_x_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
         length_2 = df['pdirs_y_coords'].apply(lambda arr: arr.max() - arr.min()).tolist()
         return length_1, length_2
@@ -503,12 +503,12 @@ def circunscribed_rectangle(geoms:gpd.GeoDataFrame|gpd.GeoSeries,dir_1_x,dir_1_y
         ]), axis=1)
         return gpd.GeoSeries(list(df['square']),crs=geoms.crs)
 
-def min_bbox(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:bool=False):
+def min_bbox(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_lengths:bool=False):
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
     rectangles = shapely.minimum_rotated_rectangle(geoms.geometry)
-    if return_length:
+    if return_lengths:
         coords = rectangles.get_coordinates()
         coords['L'] = np.sqrt(
             (coords['x'].shift(+1) - coords['x'])**2 +
@@ -547,7 +547,7 @@ def rectangle_to_directions(rectangles:gpd.GeoDataFrame|gpd.GeoSeries,normalize:
         
     return list(coords['dir_1_x']), list(coords['dir_1_y']), list(coords['dir_2_x']), list(coords['dir_2_y'])
 
-def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,oposite_side:bool=False):
+def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,oposite_side:bool=False,return_lengths:bool=False):
     geoms = geoms.copy()
     geoms = geoms.reset_index(drop=True)
     if geoms.crs.is_projected == False:
@@ -586,7 +586,7 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     dir_1_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_y'])
     dir_2_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_x'])
     dir_2_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_y'])
-    b1,b2 = circunscribed_rectangle(setbacks[setbacks.geometry.is_empty==False],dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_length=True)
+    b1,b2 = circunscribed_rectangle(setbacks[setbacks.geometry.is_empty==False],dir_1_x,dir_1_y,dir_2_x,dir_2_y,return_lengths=True)
     setbacks['b1'] = 0.
     if len(b1) > 0:
         setbacks.loc[setbacks.geometry.is_empty==False,'b1'] = list(b1)
@@ -600,19 +600,24 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     setbacks.loc[setbacks['b2'] < min_length,'b1'] = 0
     setbacks.loc[setbacks['b2'] < min_length,'b2'] = 0
     if oposite_side:
-        setbacks['b1'] /= setbacks['L2']
-        setbacks['b2'] /= setbacks['L1']
+        setbacks['b/L_1'] /= setbacks['L2']
+        setbacks['b/L_2'] /= setbacks['L1']
     else:
-        setbacks['b1'] /= setbacks['L1']
-        setbacks['b2'] /= setbacks['L2']
+        setbacks['b/L_1'] /= setbacks['L1']
+        setbacks['b/L_2'] /= setbacks['L2']
     
-    setbacks['b'] = setbacks[['b1', 'b2']].min(axis=1)
-    setbacks = setbacks.groupby(setbacks['orig_id'])[['b']].agg("max")
-    return list(setbacks['b'])
-    #setbacks = setbacks.groupby(setbacks['orig_id'])[['b1','b2']].agg("max")
-    #return list(setbacks['b1']), list(setbacks['b2'])
+    setbacks['b'] = setbacks[['b/L_1', 'b/L_2']].min(axis=1)
+    # Get index of row with max 'b' for each group
+    idx = setbacks.groupby('orig_id')['b'].idxmax()
 
-def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:bool=False,resolution:int=16):
+    # Use .loc to get the full rows
+    setbacks_max = setbacks.loc[idx, ['orig_id', 'b', 'b1', 'b2']].reset_index(drop=True)
+    if return_lengths:
+        return list(setbacks['b']), list(setbacks['b1']), list(setbacks['b2'])
+    else:
+        return list(setbacks['b'])
+
+def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_lengths:bool=False,resolution:int=16):
     if geoms.crs.is_projected == False:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
@@ -646,11 +651,11 @@ def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_length:
     if len(hull[hull.area == 0]) > 0:
         raise Exception(f"Inscribed circle is not touching the footprint boundary correclty {hull[hull.area == 0]}")
         
-    if return_length:
-        a1, a2 = circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=True) 
+    if return_lengths:
+        a1, a2 = circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_lengths=True) 
         return a1, a2 
     else:
-        return circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_length=False) 
+        return circunscribed_rectangle(hull,dir_1_x=dir_1_x,dir_1_y=dir_1_y,dir_2_x=dir_2_x,dir_2_y=dir_2_y,return_lengths=False) 
 
 def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     geoms = geoms.copy()
@@ -666,8 +671,8 @@ def basic_lengths(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
         lambda x: Polygon(x.exterior)
     )  
 
-    L1, L2 = min_bbox(geoms,return_length=True)
-    a1, a2 = maximum_inscribed_square(geoms,return_length=True)
+    L1, L2 = min_bbox(geoms,return_lengths=True)
+    a1, a2 = maximum_inscribed_square(geoms,return_lengths=True)
 
     return L1,a1,L2,a2 
 
