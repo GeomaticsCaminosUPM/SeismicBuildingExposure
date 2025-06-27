@@ -159,7 +159,7 @@ def circunsribed_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
         inertia_df[1][:,1],
         inertia_df[3][:,0],
         inertia_df[3][:,1],
-        return_length=True
+        return_lengths=True
     )
 
     return list(np.maximum(np.array(total_length_1) / np.array(total_length_2),
@@ -175,7 +175,7 @@ def min_bbox_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries):
     if not geoms.crs.is_projected:
         geoms = geoms.to_crs(geoms.geometry.estimate_utm_crs())
 
-    L1, L2 = min_bbox(geoms,return_length=True)
+    L1, L2 = min_bbox(geoms,return_lengths=True)
     return list(np.maximum(np.array(L1) / np.array(L2),
               np.array(L2) / np.array(L1)))  
 
@@ -771,7 +771,7 @@ def gndt_beta_6_setback_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_len
     _dir_1_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_1_y'])
     _dir_2_x = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_x'])
     _dir_2_y = list(setbacks.loc[setbacks.geometry.is_empty==False,'dir_2_y'])
-    b1,b2 = circunscribed_rectangle(setbacks[setbacks.geometry.is_empty==False],_dir_1_x,_dir_1_y,_dir_2_x,_dir_2_y,return_length=True)
+    b1,b2 = circunscribed_rectangle(setbacks[setbacks.geometry.is_empty==False],_dir_1_x,_dir_1_y,_dir_2_x,_dir_2_y,return_lengths=True)
     setbacks['b1'] = 0.
     if len(b1) > 0:
         setbacks.loc[setbacks.geometry.is_empty==False,'b1'] = list(b1)
