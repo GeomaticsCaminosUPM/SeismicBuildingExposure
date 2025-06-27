@@ -466,7 +466,7 @@ def asce_7_setback_ratio(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:floa
         lambda x: Polygon(x.exterior)
     )
 
-    result = setback_ratio(geoms,min_length=min_length,min_area=min_area,oposite_sides=False)
+    result = setback_ratio(geoms,min_length=min_length,min_area=min_area,opposite_sides=False)
     return result
 
 def asce_7_parallelity_angle(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
@@ -671,7 +671,7 @@ def gndt_beta_2_setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:fl
         lambda x: Polygon(x.exterior)
     )  
 
-    beta_2 = setback_ratio(geoms_holes_filled,min_length=min_length,min_area=min_area,oposite_sides=True)
+    beta_2 = setback_ratio(geoms_holes_filled,min_length=min_length,min_area=min_area,opposite_sides=True)
     return list(beta_2)
     
 def gndt_beta_3_footprint_slenderness(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
