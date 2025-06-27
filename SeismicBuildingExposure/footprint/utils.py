@@ -547,7 +547,7 @@ def rectangle_to_directions(rectangles:gpd.GeoDataFrame|gpd.GeoSeries,normalize:
         
     return list(coords['dir_1_x']), list(coords['dir_1_y']), list(coords['dir_2_x']), list(coords['dir_2_y'])
 
-def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,oposite_sides:bool=False,return_lengths:bool=False):
+def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_area:float=0,opposite_sides:bool=False,return_lengths:bool=False):
     geoms = geoms.copy()
     geoms = geoms.reset_index(drop=True)
     if geoms.crs.is_projected == False:
@@ -599,7 +599,7 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     setbacks.loc[setbacks['b1'] < min_length,'b1'] = 0
     setbacks.loc[setbacks['b2'] < min_length,'b1'] = 0
     setbacks.loc[setbacks['b2'] < min_length,'b2'] = 0
-    if oposite_sides:
+    if opposite_sides:
         setbacks['b/L_1'] = setbacks['b1'] / setbacks['L2']
         setbacks['b/L_2'] = setbacks['b2'] / setbacks['L1']
     else:
