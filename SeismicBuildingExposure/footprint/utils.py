@@ -613,9 +613,9 @@ def setback_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries,min_length:float=0,min_ar
     # Use .loc to get the full rows
     setbacks_max = setbacks.loc[idx, ['orig_id', 'b', 'b1', 'b2']].reset_index(drop=True)
     if return_lengths:
-        return list(setbacks['b']), list(setbacks['b1']), list(setbacks['b2'])
+        return list(setbacks_max['b']), list(setbacks_max['b1']), list(setbacks_max['b2'])
     else:
-        return list(setbacks['b'])
+        return list(setbacks_max['b'])
 
 def maximum_inscribed_square(geoms:gpd.GeoDataFrame|gpd.GeoSeries,return_lengths:bool=False,resolution:int=16):
     if geoms.crs.is_projected == False:
