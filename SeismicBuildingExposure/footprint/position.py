@@ -99,7 +99,7 @@ def contact_forces_df(geoms:gpd.GeoDataFrame,buffer:float=0,height_column:str=No
     geoms = geoms.rename(columns={'normal_vector':'res_normal'})
 
     geoms['force'] = geoms.apply(lambda x: np.sqrt(x['res_normal'][0]**2 + x['res_normal'][1]**2),axis=1)
-    geoms['confinement_ratio'] = (geoms['abs_force'] - geoms['force']) / geoms['force']
+    geoms['confinement_ratio'] = (geoms['abs_force'] - geoms['force']) / geoms['abs_force']
     geoms['momentum'] = np.abs(geoms['momentum']).apply(min)
     geoms['angle'] = geoms['angle'] / geoms['abs_force']
     geoms['angular_acc'] = geoms['momentum'] / geoms['inertia']
@@ -121,7 +121,7 @@ def contact_forces_df(geoms:gpd.GeoDataFrame,buffer:float=0,height_column:str=No
 def relative_position(
     forces: gpd.GeoDataFrame|pd.DataFrame,
     min_angular_acc: float = 2.133,
-    min_confinement: float = 1,
+    min_confinement: float = 0.5,
     min_angle: float = 0.78,
     min_force: float = 0.166,
     buffer:float=0,
@@ -137,7 +137,7 @@ def relative_position(
                                      Default: 0.166 (e.g., for a square building with height 1 and side length 1, 
                                      a touching structure covering 1/6 of one side would have a resultant force of 1/6).
         min_angle (float, optional): Angle threshold in radians. Default: pi / 4 (45 degrees).
-        min_confinement (float, optional): Threshold for confinement_ratio. Default: 1 (equal amounts of confined and resultant forces).
+        min_confinement (float, optional): Threshold for confinement_ratio. Default: 0.5 (equal amounts of confined and resultant forces).
         min_angular_acc (float, optional): Threshold for angular acceleration (momentum * area / inertia). Default: 2.133
                                         (e.g., for a rectangular building with height 1 and sides of length 1 and 0.5, 
                                         a touching structure covering 1/3 of two sides in the worst case 
@@ -189,3 +189,4 @@ def relative_position(
     ] = 'torque'
     
     return list(forces['relative_position'])
+
