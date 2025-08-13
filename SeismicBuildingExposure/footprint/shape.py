@@ -575,41 +575,44 @@ def NTC_hole_ratio(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> list:
         crs = geoms.crs
     )
     df = df.loc[df.geometry.is_empty == False]
-    df = df.explode().reset_index(drop=True)
-    inertia_df = calc_inertia_principal(df.geometry,principal_dirs=True)
-    inertia_df_vect_ids = [3,1]
-         
-    for i in range(2):
-        id = inertia_df_vect_ids[i]
-        
-        df['distance'] = np.sqrt((
-                df['polygon'].bounds['maxx']-df['polygon'].bounds['minx']
-            )**2 + (
-                df['polygon'].bounds['maxy']-df['polygon'].bounds['miny']
-            )**2) / 2
-        df['line_start_x'] = df.geometry.centroid.x - inertia_df[id][:,0] * (df['distance'] + 1) 
-        df['line_start_y'] = df.geometry.centroid.y - inertia_df[id][:,1] * (df['distance'] + 1) 
-        df['line_end_x'] = df.geometry.centroid.x + inertia_df[id][:,0] * (df['distance'] + 1) 
-        df['line_end_y'] = df.geometry.centroid.y + inertia_df[id][:,1] * (df['distance'] + 1)    
-        df['line'] = gpd.GeoSeries(df.apply(lambda row: LineString([(row['line_start_x'],row['line_start_y']),(row['line_end_x'],row['line_end_y'])]),axis=1),crs=df.crs)
-        df['intersection'] = df['polygon'].intersection(df['line'])
-        df = df.explode(column='intersection').reset_index(drop=True)
-        df = df.loc[df['intersection'].distance(df.centroid) < 10**-3]
-        df[f'side_length_{i+1}'] = df['intersection'].length
-        df[f'hole_width_{i+1}_a'] = df[f'side_length_{i+1}'] - df['polygon_with_holes'].intersection(df['intersection']).length
-        if i == 0:
-            df[f'hole_width_{i+1}_b'] = np.sqrt(df.geometry.area * np.sqrt(inertia_df[2] / inertia_df[0]))
-        else:
-            df[f'hole_width_{i+1}_b'] = np.sqrt(df.geometry.area * np.sqrt(inertia_df[0] / inertia_df[2]))
-
-        df[f'hole_width_{i+1}'] = df[[f'hole_width_{i+1}_a',f'hole_width_{i+1}_b']].max(axis=1)
-        df[f'hole_ratio_{i+1}'] = df[f'hole_width_{i+1}'] / df[f'side_length_{i+1}']
+    if len(df) > 0:
+        df = df.explode().reset_index(drop=True)
+        inertia_df = calc_inertia_principal(df.geometry,principal_dirs=True)
+        inertia_df_vect_ids = [3,1]
+             
+        for i in range(2):
+            id = inertia_df_vect_ids[i]
+            
+            df['distance'] = np.sqrt((
+                    df['polygon'].bounds['maxx']-df['polygon'].bounds['minx']
+                )**2 + (
+                    df['polygon'].bounds['maxy']-df['polygon'].bounds['miny']
+                )**2) / 2
+            df['line_start_x'] = df.geometry.centroid.x - inertia_df[id][:,0] * (df['distance'] + 1) 
+            df['line_start_y'] = df.geometry.centroid.y - inertia_df[id][:,1] * (df['distance'] + 1) 
+            df['line_end_x'] = df.geometry.centroid.x + inertia_df[id][:,0] * (df['distance'] + 1) 
+            df['line_end_y'] = df.geometry.centroid.y + inertia_df[id][:,1] * (df['distance'] + 1)    
+            df['line'] = gpd.GeoSeries(df.apply(lambda row: LineString([(row['line_start_x'],row['line_start_y']),(row['line_end_x'],row['line_end_y'])]),axis=1),crs=df.crs)
+            df['intersection'] = df['polygon'].intersection(df['line'])
+            df = df.explode(column='intersection').reset_index(drop=True)
+            df = df.loc[df['intersection'].distance(df.centroid) < 10**-3]
+            df[f'side_length_{i+1}'] = df['intersection'].length
+            df[f'hole_width_{i+1}_a'] = df[f'side_length_{i+1}'] - df['polygon_with_holes'].intersection(df['intersection']).length
+            if i == 0:
+                df[f'hole_width_{i+1}_b'] = np.sqrt(df.geometry.area * np.sqrt(inertia_df[2] / inertia_df[0]))
+            else:
+                df[f'hole_width_{i+1}_b'] = np.sqrt(df.geometry.area * np.sqrt(inertia_df[0] / inertia_df[2]))
     
-    df['hole_ratio'] = df[['hole_ratio_1','hole_ratio_2']].max(axis=1)
-    hole_ratio = df.loc[df.groupby('index')['hole_ratio'].idxmax(),['index','hole_ratio']]
-    hole_ratio = geoms.merge(hole_ratio, left_index=True, right_on='index', how='left').fillna({'hole_ratio': 0})
-    hole_ratio = list(hole_ratio['hole_ratio'])
-    return hole_ratio
+            df[f'hole_width_{i+1}'] = df[[f'hole_width_{i+1}_a',f'hole_width_{i+1}_b']].max(axis=1)
+            df[f'hole_ratio_{i+1}'] = df[f'hole_width_{i+1}'] / df[f'side_length_{i+1}']
+        
+        df['hole_ratio'] = df[['hole_ratio_1','hole_ratio_2']].max(axis=1)
+        hole_ratio = df.loc[df.groupby('index')['hole_ratio'].idxmax(),['index','hole_ratio']]
+        hole_ratio = geoms.merge(hole_ratio, left_index=True, right_on='index', how='left').fillna({'hole_ratio': 0})
+        hole_ratio = list(hole_ratio['hole_ratio'])
+        return hole_ratio
+    else:
+        return [0] * len(geoms)
 
 def NTC_mexico_df(geoms:gpd.GeoDataFrame|gpd.GeoSeries) -> pd.DataFrame:
     geoms = geoms.copy()
@@ -836,3 +839,4 @@ def gndt_italy_df(geoms:gpd.GeoDataFrame,min_length:float=0,min_area:float=0) ->
     
 
     
+
