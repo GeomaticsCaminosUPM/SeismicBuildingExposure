@@ -1,0 +1,30 @@
+# Sphinx build output
+docs/_build/
+_build/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+
+# Documentation build files
+docs/build/
+
+# Python packaging outputs
+*.egg-info/
+dist/
+build/
+
+# Ignore RRAE folder inside submodule (adjust path to your real one)
+**/RRAE/
+
+# Examples: ignore everything by default
+examples/*
+
+# BUT allow this specific project
+!examples/mlstructuralsystem/
+!examples/mlstructuralsystem/**
