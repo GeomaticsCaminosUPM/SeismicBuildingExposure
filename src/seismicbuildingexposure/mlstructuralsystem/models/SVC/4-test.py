@@ -50,7 +50,7 @@ def main():
         except Exception:
             print("Warning: predict_proba not available for this SVC model")
 
-    dataset.save_test(X_test,cfg=config)
+    dataset.save_test(X_test, model_name=MODEL_TYPE, cfg=config)
 
 
 

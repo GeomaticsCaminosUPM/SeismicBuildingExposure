@@ -38,7 +38,7 @@ def main():
     X_test["predicted_label"] = y_pred
 
     # Save results
-    dataset.save_test(X_test,cfg=config)
+    dataset.save_test(X_test, model_name=MODEL_TYPE, cfg=config)
 
 if __name__ == "__main__":
     main()

@@ -1352,7 +1352,7 @@ def load(split: Literal["train", "val", "val"], cfg):
         y = df[cfg.LABEL]
         return X, y
     
-def save_test(df,cfg):
+def save_test(df,model_name, cfg):
     input_path = Path(cfg.PREPROCESSED_OUTPUT_PATH) 
     input_test_file = input_path / "test.csv"
     if hasattr(cfg, "LABEL_VALUES"):
@@ -1390,10 +1390,10 @@ def save_test(df,cfg):
     
     os.makedirs(test_output_path, exist_ok=True)
     if is_geofile:
-        test_output_path = test_output_path / "test_output.gpkg"
+        test_output_path = test_output_path / f"test_output_{model_name}.gpkg"
         test_df.to_file(test_output_path)
     else:
-        test_output_path = test_output_path / "test_output.csv"
+        test_output_path = test_output_path / f"test_output_{model_name}.csv"
         test_df.to_csv(test_output_path)
 
     print(f"Test output saved as {test_output_path}")
