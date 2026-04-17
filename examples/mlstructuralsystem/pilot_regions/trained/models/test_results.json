@@ -1,0 +1,50 @@
+{
+  "execution_time": 10.220164060592651,
+  "models": [
+    {
+      "model": "LogisticRegression",
+      "status": "success",
+      "start_time": "2026-04-17T20:02:28.429402",
+      "script": "4-test.py",
+      "time": 1.39638090133667,
+      "error": null,
+      "end_time": "2026-04-17T20:02:29.826112"
+    },
+    {
+      "model": "RandomForest",
+      "status": "success",
+      "start_time": "2026-04-17T20:02:29.826296",
+      "script": "4-test.py",
+      "time": 1.6728076934814453,
+      "error": null,
+      "end_time": "2026-04-17T20:02:31.499562"
+    },
+    {
+      "model": "XGBoost",
+      "status": "success",
+      "start_time": "2026-04-17T20:02:31.499724",
+      "script": "4-test.py",
+      "time": 3.6336867809295654,
+      "error": null,
+      "end_time": "2026-04-17T20:02:35.133774"
+    },
+    {
+      "model": "CatBoost",
+      "status": "success",
+      "start_time": "2026-04-17T20:02:35.133937",
+      "script": "4-test.py",
+      "time": 1.9343783855438232,
+      "error": null,
+      "end_time": "2026-04-17T20:02:37.068625"
+    },
+    {
+      "model": "SVC",
+      "status": "success",
+      "start_time": "2026-04-17T20:02:37.068717",
+      "script": "4-test.py",
+      "time": 1.5803871154785156,
+      "error": null,
+      "end_time": "2026-04-17T20:02:38.649463"
+    }
+  ]
+}

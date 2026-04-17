@@ -1,0 +1,25 @@
+Loaded model from: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/CatBoost/model_final_CatBoost.pkl
+
+=== VAL SET EVALUATION ===
+
+              precision    recall  f1-score   support
+
+           0       0.45      0.92      0.60        24
+           1       0.65      0.71      0.68        70
+           2       0.90      0.74      0.81       244
+           3       0.17      0.43      0.24         7
+
+    accuracy                           0.74       345
+   macro avg       0.54      0.70      0.58       345
+weighted avg       0.80      0.74      0.76       345
+
+Macro-F1: 0.5841
+Accuracy: 0.7420
+Confusion matrix:
+ [[ 22   1   0   1]
+ [  3  50  16   1]
+ [ 24  26 181  13]
+ [  0   0   4   3]]
+Confusion matrix saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/CatBoost/confusion_matrix_val.csv
+Classification report saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/CatBoost/classification_report_val.txt
+Results logged to MLflow.

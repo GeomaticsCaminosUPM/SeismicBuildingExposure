@@ -1,0 +1,11 @@
+Best run id:               da373cd321364ee8a90bfaffb5933168
+Best strategy:             smote
+Best LogReg params:        {'C': 1.0}
+use_smote:                 True
+use_class_weight:          False
+Model saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/LogisticRegression/model_final_LogisticRegression.pkl
+Final model trained and registered in MLflow.
+
+/home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/.venv/lib/python3.12/site-packages/sklearn/linear_model/_logistic.py:1272: FutureWarning: 'multi_class' was deprecated in version 1.5 and will be removed in 1.8. From then on, it will always use 'multinomial'. Leave it to its default value to avoid this warning.
+  warnings.warn(
+2026/04/17 19:58:14 WARNING mlflow.sklearn: Saving scikit-learn models in the pickle or cloudpickle format requires exercising caution because these formats rely on Python's object serialization mechanism, which can execute arbitrary code during deserialization. The recommended safe alternative is the 'skops' format. For more information, see: https://scikit-learn.org/stable/model_persistence.html

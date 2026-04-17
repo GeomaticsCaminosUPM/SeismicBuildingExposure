@@ -1,3 +1,10 @@
+# Examples: ignore everything by default
+examples/*
+
+# BUT allow this specific project
+!examples/mlstructuralsystem/
+!examples/mlstructuralsystem/**
+
 # Sphinx build output
 docs/_build/
 _build/
@@ -22,9 +29,6 @@ build/
 # Ignore RRAE folder inside submodule (adjust path to your real one)
 **/RRAE/
 
-# Examples: ignore everything by default
-examples/*
+# mlruns anywhere
+**/mlruns/
 
-# BUT allow this specific project
-!examples/mlstructuralsystem/
-!examples/mlstructuralsystem/**

@@ -32,20 +32,20 @@ def format_time(seconds):
     return str(timedelta(seconds=int(seconds)))
 
 
-def check_model_completed(model_dir):
-    if model_dir.name == "AutoGluon":
-        model_path = model_dir / f"model_final_{model_dir.name}"
+def check_model_completed(model_idx_dir):
+    if model_idx_dir.name == "AutoGluon":
+        model_path = model_idx_dir / f"model_final_{model_idx_dir.name}"
         if not model_path.exists():
             return False
     else:
-        model_path = model_dir / f"model_final_{model_dir.name}.pkl"
-        if model_dir.name == "RRAE":
-            model_path = model_dir / f"model_final_{model_dir.name}.pth"
+        model_path = model_idx_dir / f"model_final_{model_idx_dir.name}.pkl"
+        if model_idx_dir.name == "RRAE":
+            model_path = model_idx_dir / f"model_final_{model_idx_dir.name}.pth"
 
         if not model_path.exists():
             return False
 
-    report_path = model_dir / "classification_report_test.txt"
+    report_path = model_idx_dir / "classification_report_val.txt"
     if not report_path.exists():
         return False
 
@@ -97,7 +97,7 @@ def run_script(script_path, model_name, env):
         return False, elapsed, str(e)
 
 
-def run_model(model_name, model_dir, config, env):
+def run_model(model_name, model_idx_dir, config, env):
     print_section(f"Model: {model_name}")
 
     results = {
@@ -108,20 +108,20 @@ def run_model(model_name, model_dir, config, env):
         'total_time': 0
     }
 
-    if config.SKIP_COMPLETED and check_model_completed(model_dir):
+    if config.SKIP_COMPLETED and check_model_completed(model_idx_dir):
         print(f"⏭ Model already completed, skipping...")
         results['status'] = 'skipped'
         return results
 
     model_cfg = config.MODEL_CONFIG.get(model_name, {
-        "scripts": ["1-train_cv.py", "2-train_final.py", "3-test.py"],
+        "scripts": ["1-train_cv.py", "2-train_final.py", "3-val.py"],
         "estimated_time_minutes": 60
     })
 
     print(f"📊 Estimated time: ~{model_cfg['estimated_time_minutes']} minutes\n")
 
     for script_name in model_cfg["scripts"]:
-        script_path = model_dir / script_name
+        script_path = model_idx_dir / script_name
 
         if not script_path.exists():
             print(f"⚠ Missing script: {script_name}")
@@ -168,12 +168,12 @@ def run(cfg):
     print_header("AUTOMATED MODEL TRAINING AND EVALUATION")
 
     project_dir = Path.cwd()
-    models_dir = cfg.MODELS_DIR
+    models_dir = cfg.PROJECT_ROOT / "models"
 
     # Pass config to subprocess via environment
     env = os.environ.copy()
     env["MLFLOW_TRACKING_URI"] = cfg.MLFLOW_TRACKING_URI
-    env["PROJECT_MODELS_DIR"] = cfg.MODELS_DIR
+    env["PROJECT_MODELS_DIR"] = cfg.PROJECT_ROOT / "models"
 
     print(f"Working directory: {project_dir}")
     print(f"Models directory: {models_dir}")
@@ -183,6 +183,25 @@ def run(cfg):
     # Ensure models_dir exists
     models_dir.mkdir(parents=True, exist_ok=True)
 
+
+    for idx, model_name in enumerate(cfg.MODELS, start=1):
+        print_header(f"Model {idx}/{len(cfg.MODELS)}: {model_name}")
+
+        model_idx_dir = models_dir / model_name
+
+        if not model_idx_dir.exists():
+            print(f"⚠ Missing model directory: {model_idx_dir}")
+            
+            source_model_path = source_models_dir / model_name
+
+            if not source_model_path.exists():
+                raise FileNotFoundError(f"Source model not found in {source_models_dir}: {model_name}")
+
+            print(f"→ Copying '{model_name}' from default models folder and using default model params...")
+
+            shutil.copytree(source_model_path, model_idx_dir)
+            print(f"✓ Copied '{model_name}' successfully")
+       
     # Estimate total time
     total_estimated = sum(
         cfg.MODEL_CONFIG.get(m, {}).get('estimated_time_minutes', 60)
@@ -203,23 +222,12 @@ def run(cfg):
     for idx, model_name in enumerate(cfg.MODELS, start=1):
         print_header(f"Model {idx}/{len(cfg.MODELS)}: {model_name}")
 
-        model_dir = models_dir / model_name
+        model_idx_dir = models_dir / model_name
 
-        if not model_dir.exists():
-            print(f"⚠ Missing model directory: {model_dir}")
-            
-            source_model_path = source_models_dir / model_name
+        if not model_idx_dir.exists():
+            raise FileNotFoundError(f"Source model not found in {source_models_dir}: {model_name}")
 
-            if not source_model_path.exists():
-                raise FileNotFoundError(f"Source model not found in {source_models_dir}: {model_name}")
-
-            print(f"→ Copying '{model_name}' from default models folder and using default model params...")
-
-            shutil.copytree(source_model_path, model_dir)
-            print(f"✓ Copied '{model_name}' successfully")
-            
-
-        result = run_model(model_name, model_dir, cfg, env)
+        result = run_model(model_name, model_idx_dir, cfg, env)
         all_results.append(result)
 
         if result['status'] == 'failed':

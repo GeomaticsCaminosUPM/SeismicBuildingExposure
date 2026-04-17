@@ -1,0 +1,4 @@
+Loaded model from: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/SVC/model_final_SVC.pkl
+Test data shape: (345, 30)
+Warning: predict_proba not available for this SVC model
+Test output saved as /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/dataset/test_output.gpkg

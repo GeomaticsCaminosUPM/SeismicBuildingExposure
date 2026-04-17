@@ -1,0 +1,25 @@
+Loaded model from: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/SVC/model_final_SVC.pkl
+
+=== VAL SET EVALUATION ===
+
+              precision    recall  f1-score   support
+
+           0       0.41      0.71      0.52        24
+           1       0.65      0.67      0.66        70
+           2       0.88      0.78      0.83       244
+           3       0.13      0.29      0.18         7
+
+    accuracy                           0.74       345
+   macro avg       0.52      0.61      0.55       345
+weighted avg       0.79      0.74      0.76       345
+
+Macro-F1: 0.5489
+Accuracy: 0.7449
+Confusion matrix:
+ [[ 17   2   4   1]
+ [  4  47  17   2]
+ [ 20  23 191  10]
+ [  0   0   5   2]]
+Confusion matrix saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/SVC/confusion_matrix_val.csv
+Classification report saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/SVC/classification_report_val.txt
+Results logged to MLflow.

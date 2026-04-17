@@ -8,7 +8,7 @@ and data splitting.
 
 Includes:
 - Data loading and cleaning with ordinal mapping enforcement for categorical features.
-- A stratified, group-aware train-test split to ensure representative subsets.
+- A stratified, group-aware train-val split to ensure representative subsets.
 - Scaling of numeric data using StandardScaler.
 - Advanced feature generation using AutoGluon's feature engineering capabilities.
 - Helper functions for visualizing model inputs and outputs.
@@ -40,18 +40,31 @@ from typing import Literal
 from .. import footprint
 
 def add_position_features(gdf, cfg):
+    if ("relative_position" not in cfg.FEATURES) or ("relative_position" in gdf.columns):
+        return gdf
+
     gdf = gdf.copy()
 
     if any(gdf.geometry.type == 'MultiPolygon'):
-        print("There are multiplart geometries. Exploding geometries.")
+        print("\n" + "="*60)
+        print("⚠️ WARNING: There are multiplart geometries. Exploding geometries.")
+        print("="*60 + "\n")
+        gdf = gdf.explode().reset_index(drop=True)
 
-    if any(gdf.geometry.type.str.contains('Polygon') == False):
-        print("Some geometries are not Polygon")
+    mask = gdf.geometry.type.str.contains("Polygon", na=False)
+
+    n_removed = (~mask).sum()
+
+    if n_removed > 0:
+        print("\n" + "="*60)
+        print(f"⚠️ WARNING: Removed {n_removed} rows with non-Polygon or invalid geometries")
+        print("="*60 + "\n")
+
+        gdf = gdf[mask]
         
     if "id" not in gdf.columns:
         gdf["id"] = gdf.index
 
-    gdf = gdf.explode().reset_index(drop=True)
     gdf = gdf.to_crs(gdf.estimate_utm_crs())
 
     if "height" in gdf.columns:
@@ -60,17 +73,17 @@ def add_position_features(gdf, cfg):
         height_column = None
 
     forces = footprint.position.contact_forces_df(
-        gdf,
+        gdf.copy(),
         height_column=height_column,
         buffer=cfg.POSITION_BUFFER,
         min_radius=cfg.POSITION_MIN_RADIUS
     )
 
     if any(field.startswith("contact_") for field in cfg.FEATURES):
-        gdf["contact_force"] = forces["force"]
-        gdf["contact_confinement_ratio"] = forces["confinement_ratio"]
-        gdf["contact_angular_acc"] = forces["angular_acc"]
-        gdf["contact_angle"] = forces["angle"]
+        gdf["contact_force"] = list(forces["force"])
+        gdf["contact_confinement_ratio"] = list(forces["confinement_ratio"])
+        gdf["contact_angular_acc"] = list(forces["angular_acc"])
+        gdf["contact_angle"] = list(forces["angle"])
 
     gdf['relative_position'] = footprint.position.relative_position(
         forces,
@@ -112,13 +125,22 @@ def add_irregularity_features(gdf, cfg):
     # -------------------------
     # Geometry checks
     # -------------------------
-    geom_types = gdf.geometry.geom_type
+    if any(gdf.geometry.type == 'MultiPolygon'):
+        print("\n" + "="*60)
+        print("⚠️ WARNING: There are multiplart geometries. Exploding geometries.")
+        print("="*60 + "\n")
+        gdf = gdf.explode().reset_index(drop=True)
 
-    if (geom_types == "MultiPolygon").any():
-        print("There are multipart geometries. Exploding geometries.")
+    mask = gdf.geometry.type.str.contains("Polygon", na=False)
 
-    if (~geom_types.str.contains("Polygon")).any():
-        print("Some geometries are not Polygon")
+    n_removed = (~mask).sum()
+
+    if n_removed > 0:
+        print("\n" + "="*60)
+        print(f"⚠️ WARNING: Removed {n_removed} rows with non-Polygon or invalid geometries")
+        print("="*60 + "\n")
+
+        gdf = gdf[mask]
 
     # -------------------------
     # ID column
@@ -158,35 +180,35 @@ def add_irregularity_features(gdf, cfg):
     # -------------------------
     if needs_ec8:
         ec8 = footprint.shape.eurocode_8_df(gdf)
-        gdf["EC8_eccentricity_ratio"] = ec8["eccentricity_ratio"]
-        gdf["EC8_radius_ratio"] = ec8["radius_ratio"]
-        gdf["EC8_compactness"] = ec8["compactness"]
-        gdf["EC8_direction_eccentricity"] = ec8["angle_eccentricity"]
+        gdf["EC8_eccentricity_ratio"] = list(ec8["eccentricity_ratio"])
+        gdf["EC8_radius_ratio"] = list(ec8["radius_ratio"])
+        gdf["EC8_compactness"] = list(ec8["compactness"])
+        gdf["EC8_direction_eccentricity"] = list(ec8["angle_eccentricity"])
 
     # -------------------------
     # Costa Rica
     # -------------------------
     if needs_cr:
         cr = footprint.shape.codigo_sismico_costa_rica_df(gdf)
-        gdf["CR_eccentricity_ratio"] = cr["eccentricity_ratio"]
-        gdf["CR_direction_eccentricity"] = cr["angle"]
+        gdf["CR_eccentricity_ratio"] = list(cr["eccentricity_ratio"])
+        gdf["CR_direction_eccentricity"] = list(cr["angle"])
 
     # -------------------------
     # NTC Mexico
     # -------------------------
     if needs_ntc:
         mx = footprint.shape.NTC_mexico_df(gdf)
-        gdf["NTC_setback_ratio"] = mx["setback_ratio"]
-        gdf["NTC_hole_ratio"] = mx["hole_ratio"]
+        gdf["NTC_setback_ratio"] = list(mx["setback_ratio"])
+        gdf["NTC_hole_ratio"] = list(mx["hole_ratio"])
 
     # -------------------------
     # ASCE 7
     # -------------------------
     if needs_asce7:
         asce = footprint.shape.asce_7_df(gdf)
-        gdf["ASCE7_setback_ratio"] = asce["setback_ratio"]
-        gdf["ASCE7_hole_ratio"] = asce["hole_ratio"]
-        gdf["ASCE7_parallelity_angle"] = asce["parallelity_angle"]
+        gdf["ASCE7_setback_ratio"] = list(asce["setback_ratio"])
+        gdf["ASCE7_hole_ratio"] = list(asce["hole_ratio"])
+        gdf["ASCE7_parallelity_angle"] = list(asce["parallelity_angle"])
 
     # -------------------------
     # GNDT Italy
@@ -197,10 +219,10 @@ def add_irregularity_features(gdf, cfg):
             min_length=cfg.GNDT_MIN_LENGTH,
             min_area=cfg.GNDT_MIN_AREA
         )
-        gdf["GNDT_main_shape_slenderness"] = gndt["beta_1_main_shape_slenderness"]
-        gdf["GNDT_setback_ratio"] = gndt["beta_2_setback_ratio"]
-        gdf["GNDT_eccentricity_ratio"] = gndt["beta_4_eccentricity_ratio"]
-        gdf["GNDT_setback_slenderness"] = gndt["beta_6_setback_slenderness"]
+        gdf["GNDT_main_shape_slenderness"] = list(gndt["beta_1_main_shape_slenderness"])
+        gdf["GNDT_setback_ratio"] = list(gndt["beta_2_setback_ratio"])
+        gdf["GNDT_eccentricity_ratio"] = list(gndt["beta_4_eccentricity_ratio"])
+        gdf["GNDT_setback_slenderness"] = list(gndt["beta_6_setback_slenderness"])
 
     # -------------------------
     # Slenderness metrics
@@ -214,21 +236,21 @@ def add_irregularity_features(gdf, cfg):
 
     if ("slenderness_inertia" in features) or ("slenderness_inertia" == cfg.FSI_SLENDERNESS_COL):
         val, ang = footprint.shape.inertia_slenderness(gdf, return_direction=True)
-        gdf["slenderness_inertia"] = val
-        gdf["inertia_direction"] = ang
+        gdf["slenderness_inertia"] = list(val)
+        gdf["inertia_direction"] = list(ang)
 
     if ("slenderness_bbox" in features) or ("slenderness_bbox" == cfg.FSI_SLENDERNESS_COL):
         val, ang = footprint.shape.min_bbox_slenderness(gdf, return_direction=True)
-        gdf["slenderness_bbox"] = val
-        gdf["bbox_direction"] = ang
+        gdf["slenderness_bbox"] = list(val)
+        gdf["bbox_direction"] = list(ang)
 
     if ("slenderness_circunscribed" in features) or ("slenderness_circunscribed" == cfg.FSI_SLENDERNESS_COL):
         val, ang = footprint.shape.circunscribed_slenderness(gdf, return_direction=True)
-        gdf["slenderness_circunscribed"] = val
-        gdf["circunscribed_direction"] = ang
+        gdf["slenderness_circunscribed"] = list(val)
+        gdf["circunscribed_direction"] = list(ang)
 
     if ("inertia_vs_circle" in features) or ("inertia_vs_circle" == cfg.FSI_SLENDERNESS_COL):
-        gdf["inertia_vs_circle"], _ = footprint.shape.inertia_circle(gdf)
+        gdf["inertia_vs_circle"] = footprint.shape.inertia_circle(gdf)
 
     # -------------------------
     # FSI classification
@@ -267,6 +289,7 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
         Exception: If the label column is missing or if any ordinal feature contains categories
                    present in the data but not defined in the ordinal mappings.
     """
+    data = data.copy()
     if "geometry" in data.columns and not isinstance(data,gpd.GeoDataFrame):
         # Convert WKT strings to shapely geometries
         data["geometry"] = data["geometry"].apply(wkt.loads)
@@ -276,10 +299,56 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
 
     if isinstance(data, gpd.GeoDataFrame) and data.geometry.name != "geometry":
         data = data.rename_geometry("geometry")
+
+    if isinstance(data, gpd.GeoDataFrame):
+        if len(data.explode(index_parts=False).reset_index(drop=True)) != len(data):
+            print("\n" + "="*60)
+            print("⚠️ WARNING: There are multiplart geometries. Exploding geometries.")
+            print("="*60 + "\n")
+            data = data.explode(index_parts=False).reset_index(drop=True)
+
+        mask = data.geometry.type.str.contains("Polygon", na=False)
+
+        n_removed = (~mask).sum()
+
+        if n_removed > 0:
+            print("\n" + "="*60)
+            print(f"⚠️ WARNING: Removed {n_removed} rows with non-Polygon or invalid geometries")
+            print("="*60 + "\n")
+
+            data = data[mask]
         
     if cfg.LABEL not in data.columns:
         raise Exception(f"Label column '{cfg.LABEL}' not found in dataset columns: {list(data.columns)}")
+    
+    n_removed = data[cfg.LABEL].isna().sum()
+    
+    if n_removed > 0:
+        print("\n" + "="*60)
+        print(f"⚠️ WARNING: Removed {n_removed} rows due to missing values in column '{cfg.LABEL}'")
+        print("="*60 + "\n")
+        
+        data = data[data[cfg.LABEL].notna()]
 
+    # Convert to categorical (no order)
+    data[cfg.LABEL] = pd.Categorical(
+        data[cfg.LABEL],
+        categories=cfg.LABEL_VALUES,
+        ordered=False
+    )
+
+    for col in ["id",*cfg.FEATURES]:
+        if col in data.columns:
+            n_removed = data[col].isna().sum()
+            
+            if n_removed > 0:
+                print("\n" + "="*60)
+                print(f"⚠️ WARNING: Removed {n_removed} rows due to missing values in column '{col}'")
+                print("="*60 + "\n")
+                
+                data = data[data[col].notna()]
+
+    data = data.reset_index(drop=True)
     print("Dataset label counts")
     print(data[cfg.LABEL].value_counts())
 
@@ -311,14 +380,14 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
                 actual_values = set(data[col].dropna().unique())
                 defined_set = set(defined_order)
                 if actual_values != defined_set:
-                    print(f"  - WARNING: Column '{col}' has mismatch between defined order and actual data.")
+                    # print(f"  - WARNING: Column '{col}' has mismatch between defined order and actual data.")
 
-                    missing_from_data = defined_set - actual_values
-                    if missing_from_data:
-                        print(f"    - Categories defined but NOT in data: {missing_from_data}. Updating mapping.")
-                        # Update mapping to only include categories present in the data
-                        defined_order = [val for val in defined_order if val in actual_values]
-                        cfg.ORDINAL_FEATURES[col] = defined_order
+                    # missing_from_data = defined_set - actual_values
+                    # if missing_from_data:
+                    #     print(f"    - Categories defined but NOT in data: {missing_from_data}. Updating mapping.")
+                    #     # Update mapping to only include categories present in the data
+                    #     defined_order = [val for val in defined_order if val in actual_values]
+                    #     cfg.ORDINAL_FEATURES[col] = defined_order
 
                     missing_from_definition = actual_values - defined_set
                     if missing_from_definition:
@@ -335,6 +404,29 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
             """TODO: Geographic area for very large or multi city datasets"""
             data["area"] = data.geometry.area
 
+    if hasattr(cfg, "MIN_AREA"): 
+        if cfg.MIN_AREA is not None and cfg.MIN_AREA > 0:
+            if "area" in data.columns:
+                deleted_cols = sum(data["area"] < cfg.MIN_AREA)
+                if deleted_cols > 0:
+                    print("\n" + "="*60)
+                    print(f"⚠️ WARNING: Removed {deleted_cols} rows with polygon geometries of less than {cfg.MIN_AREA} m2 area")
+                    print("="*60 + "\n")
+                    data = data[data["area"] > cfg.MIN_AREA]
+
+            elif isinstance(data, gpd.GeoDataFrame):
+                print("Computing 'area' from footprint geometries. Transforming crs to utm.")
+                data.geometry = data.geometry.to_crs(data.estimate_utm_crs())
+                """TODO: Geographic area for very large or multi city datasets"""
+                deleted_cols = sum(data.geometry.area < cfg.MIN_AREA)
+                if deleted_cols > 0:
+                    print("\n" + "="*60)
+                    print(f"⚠️ WARNING: Removed {deleted_cols} rows with polygon geometries of less than {cfg.MIN_AREA} m2 area")
+                    print("="*60 + "\n")
+                    data = data[data.geometry.area > cfg.MIN_AREA]
+
+            data = data.reset_index(drop=True)
+
     if "perimeter" in cfg.FEATURES and "perimeter" not in data.columns:
         if isinstance(data, gpd.GeoDataFrame):
             print("Adding 'perimeter' column from footprint geometries. Transforming crs to utm.")
@@ -343,9 +435,8 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
             data["perimeter"] = data.geometry.boundary.length 
 
     if isinstance(data, gpd.GeoDataFrame): 
-        add_position_features(data,cfg)
-        if "relative_position" in cfg.FEATURES and "relative_position" not in data.columns:
-            add_position_features(data,cfg)
+        data = add_irregularity_features(data,cfg)
+        data = add_position_features(data,cfg)
 
     if isinstance(data, gpd.GeoDataFrame): 
         data.geometry = data.geometry.to_crs(4326)      
@@ -360,7 +451,7 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
     if hasattr(cfg, "STRATIFY_COLUMN"): 
         if cfg.STRATIFY_COLUMN is not None:
             if cfg.STRATIFY_COLUMN not in data.columns:
-                raise Exception(f"Mandatory stratify column {cfg.STRATIFY_COLUMN} not in dataset columns {data.columns}.")
+                raise Exception(f"Mandatory stratify column {cfg.STRATIFY_COLUMN} not in dataset columns {list(data.columns)}.")
 
     actual_columns = set(data.columns)
     defined_columns = set(cfg.FEATURES)
@@ -375,9 +466,9 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
     # Raise error only for missing columns
     if missing_columns:
         raise ValueError(
-            "Column mismatch detected: dataset is missing required FEATURES.\n"
-            f"Defined columns (features): {defined_columns}\n"
-            f"Dataset columns: {actual_columns}\n"
+            "Column mismatch detected: dataset is missing required FEATURES.\n\n"
+            f"Required columns (features): {defined_columns}\n\n"
+            f"Dataset columns: {actual_columns}\n\n"
             f"Missing columns (in FEATURES but not in dataset): {missing_columns}"
         )
     
@@ -387,29 +478,29 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
 def create_train_test_split(df: pd.DataFrame,
                             cfg,
                             stratify_col: str|None = None,
-                            test_size: float = 0.3
+                            val_size: float = 0.3
                         ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Performs a stratified train-test split based on the interaction of target and group columns.
+    Performs a stratified train-val split based on the interaction of target and group columns.
 
     This method ensures that the distribution of the target variable within each group (e.g., city)
-    is preserved across the training and testing sets. It handles the edge case where a
+    is preserved across the training and valing sets. It handles the edge case where a
     stratum might have only one sample by assigning it directly to the training set.
 
     Args:
         df (pd.DataFrame): The input dataframe to split.
         target_col (str): The column name to stratify on (usually the label).
         group_col (str): A secondary column for group-aware stratification (e.g., 'city').
-        test_size (float): The proportion of the dataset to allocate to the test set.
+        val_size (float): The proportion of the dataset to allocate to the val set.
         random_state (int): The seed for the random number generator for reproducibility.
 
     Returns:
-        tuple[pd.DataFrame, pd.DataFrame]: A tuple containing the training and testing dataframes.
+        tuple[pd.DataFrame, pd.DataFrame]: A tuple containing the training and valing dataframes.
     """
-    if test_size == 0:
-        raise Exception("Invalid value 0 for test_size")
-    elif test_size >= 1:
-        raise Exception(f"Invalid value {test_size} for test_size")
+    if val_size == 0:
+        raise Exception("Invalid value 0 for val_size")
+    elif val_size >= 1:
+        raise Exception(f"Invalid value {val_size} for val_size")
     
     df_copy = df.copy()
     # Create a temporary stratification column by combining the target and group columns.
@@ -437,9 +528,9 @@ def create_train_test_split(df: pd.DataFrame,
         splittable_df = df_copy
 
     # Perform the stratified split on the splittable portion of the data
-    train_df, test_df = train_test_split(
+    train_df, val_df = train_test_split(
         splittable_df,
-        test_size=test_size,
+        test_size=val_size,
         random_state=cfg.RANDOM_STATE,
         stratify=splittable_df[strata_col_name]
     )
@@ -449,7 +540,7 @@ def create_train_test_split(df: pd.DataFrame,
         train_df = pd.concat([train_df, single_sample_df])
 
     # Remove the temporary stratification column before returning the dataframes
-    return train_df.drop(columns=[strata_col_name]), test_df.drop(columns=[strata_col_name])
+    return train_df.drop(columns=[strata_col_name]), val_df.drop(columns=[strata_col_name])
 
 
 def identify_feature_types(data_df: pd.DataFrame, cfg) -> dict:
@@ -508,6 +599,9 @@ def create_preprocessor(data_df: pd.DataFrame, cfg, scale_numeric: bool = True) 
     Returns:
         Fitted ColumnTransformer ready to transform data
     """
+
+    data_df = data_df[cfg.FEATURES]
+    
     feature_types = identify_feature_types(data_df, cfg)
     
     transformers = []
@@ -548,12 +642,15 @@ def create_preprocessor(data_df: pd.DataFrame, cfg, scale_numeric: bool = True) 
     
     return preprocessor
 
-def encode(data_df: pd.DataFrame,
-           cfg,
-                      scale_numeric: bool = True,
-                      preprocessor: ColumnTransformer|None = None,
-                      label_encoder: LabelEncoder|None = None,
-                      fit: bool = True) -> tuple:
+def encode(
+        data_df: pd.DataFrame,
+        cfg,
+        scale_numeric: bool = True,
+        preprocessor: ColumnTransformer|None = None,
+        label_encoder: LabelEncoder|None = None,
+        fit: bool = True,
+        is_test: bool = False,
+    ) -> tuple:
     """
     Apply full preprocessing pipeline to a dataset.
     
@@ -562,7 +659,7 @@ def encode(data_df: pd.DataFrame,
         scale_numeric: Whether to scale numeric features
         preprocessor: Pre-fitted preprocessor (if None, creates new one)
         label_encoder: Pre-fitted label encoder (if None, creates new one)
-        fit: Whether to fit the preprocessor (True for train, False for test)
+        fit: Whether to fit the preprocessor (True for train, False for val)
     
     Returns:
         Tuple of (X, y, preprocessor, label_encoder) where:
@@ -581,20 +678,26 @@ def encode(data_df: pd.DataFrame,
     if preprocessor is None:
         preprocessor = create_preprocessor(processed_df, cfg, scale_numeric=scale_numeric)
     
-    if label_encoder is None:
+    if (not is_test) and label_encoder is None:
         label_encoder = get_label_encoder(processed_df, cfg)
     
     # Prepare features (X) and labels (y)
-    X_df = processed_df.drop(columns=[cfg.LABEL])
-    y = label_encoder.transform(processed_df[cfg.LABEL])
-    
+    if is_test:
+        X_df = processed_df.copy()
+    else:
+        X_df = processed_df.drop(columns=[cfg.LABEL])
+        y = label_encoder.transform(processed_df[cfg.LABEL])
+        
     # Transform features
     if fit:
         X = preprocessor.fit_transform(X_df)
     else:
         X = preprocessor.transform(X_df)
     
-    return X, y, preprocessor, label_encoder
+    if is_test:
+        return X, preprocessor
+    else:
+        return X, y, preprocessor, label_encoder
 
 
 def get_feature_names(preprocessor: ColumnTransformer, data_df: pd.DataFrame, cfg) -> list:
@@ -627,21 +730,49 @@ def get_feature_names(preprocessor: ColumnTransformer, data_df: pd.DataFrame, cf
 
 def get_label_encoder(data_df: pd.DataFrame, cfg) -> LabelEncoder:
     """
-    Create and fit a LabelEncoder for the target column.
+    Create and fit a LabelEncoder using a fixed label order.
     
     Args:
-        data_df: Dataframe containing the label column
+        data_df: DataFrame containing the label column
+        cfg: config with LABEL column name
     
     Returns:
         Fitted LabelEncoder
     """
     label_encoder = LabelEncoder()
-    label_encoder.fit(data_df[cfg.LABEL])
     
-    print(f"Label encoding: {dict(zip(label_encoder.classes_, label_encoder.transform(label_encoder.classes_)))}")
-    print("\n", 50*"#", "\n")
+    if hasattr(cfg, "LABEL_VALUES"):
+        # enforce fixed order
+        label_encoder.fit(cfg.LABEL_VALUES)
+    else:
+        label_encoder.fit(data_df[cfg.LABEL])
+
+    print(
+        "Label encoding:",
+        dict(zip(label_encoder.classes_,
+                 label_encoder.transform(label_encoder.classes_)))
+    )
+    print("\n", 50 * "#", "\n")
     
     return label_encoder
+
+# def get_label_encoder(data_df: pd.DataFrame, cfg) -> LabelEncoder:
+#     """
+#     Create and fit a LabelEncoder for the target column.
+    
+#     Args:
+#         data_df: Dataframe containing the label column
+    
+#     Returns:
+#         Fitted LabelEncoder
+#     """
+#     label_encoder = LabelEncoder()
+#     label_encoder.fit(data_df[cfg.LABEL])
+    
+#     print(f"Label encoding: {dict(zip(label_encoder.classes_, label_encoder.transform(label_encoder.classes_)))}")
+#     print("\n", 50*"#", "\n")
+    
+#     return label_encoder
 
 
 ###############################
@@ -653,7 +784,7 @@ def get_feature_generator(data_df: pd.DataFrame, cfg) -> AutoMLPipelineFeatureGe
     This generator is configured to automatically handle numeric and categorical
     features, creating new features as needed. It is fitted on the entire dataset
     (without the label) to learn the data's properties for consistent transformation
-    across train and test sets.
+    across train and val sets.
 
     Args:
         data_df (pd.DataFrame): The input dataframe to fit the generator on.
@@ -874,13 +1005,15 @@ def read_geofile(file, cfg):
     # Add source column
     gdf["source"] = str(file_path)
 
-    # Select only relevant columns that exist
-    all_columns = list(
-        set(["id"] + cfg.FEATURES + [cfg.LABEL, "source", "geometry"])
-        .intersection(gdf.columns)
-    )
+    # # Select only relevant columns that exist
+    # all_columns = list(
+    #     set(["id"] + cfg.FEATURES + [cfg.LABEL, "source", "geometry"])
+    #     .intersection(gdf.columns)
+    # )
 
-    gdf = check_features(gdf[all_columns], cfg)
+    # gdf = check_features(gdf[all_columns], cfg)
+
+    gdf = check_features(gdf, cfg)
 
     return gdf
 
@@ -901,13 +1034,15 @@ def read_tabular(file, cfg):
     # Add source column
     df["source"] = str(file_path)
 
-    # Keep only relevant columns that exist
-    all_columns = list(
-        set(["id"] + cfg.FEATURES + [cfg.LABEL, "source"])
-        .intersection(df.columns)
-    )
+    # # Keep only relevant columns that exist
+    # all_columns = list(
+    #     set(["id"] + cfg.FEATURES + [cfg.LABEL, "source"])
+    #     .intersection(df.columns)
+    # )
 
-    df = check_features(df[all_columns], cfg)
+    # df = check_features(df[all_columns], cfg)
+
+    df = check_features(df, cfg)
 
     return df
 
@@ -953,7 +1088,7 @@ def read_mixed(path, cfg):
     geofile = False
 
     # Resolve output path
-    output_folder = Path(cfg.PREPROCESSED_DATASET_PATH)
+    output_folder = Path(cfg.CLEANED_DATASET_PATH)
     if not output_folder.is_absolute():
         output_folder = Path(cfg.PROJECT_ROOT) / output_folder
 
@@ -963,19 +1098,20 @@ def read_mixed(path, cfg):
     if path.is_dir():
         dfs = []
         for file_path in path.iterdir():
-            if file_path.is_file():
-                filename_wo_ext = os.path.splitext(file_path)[0]
-                output_path = os.path.join(output_folder, filename_wo_ext)
-                if os.path.isfile(output_path + ".gpkg"):
-                    file_path = output_path + ".gpkg"
-                elif os.path.isfile(output_path + ".csv"):
-                    file_path = output_path + ".csv"
+            filename_wo_ext = file_path.stem  # removes extension
+            output_path = Path(output_folder) / filename_wo_ext
+            if (output_path.with_suffix(".gpkg")).is_file():
+                file_path = output_path.with_suffix(".gpkg")
 
+            elif (output_path.with_suffix(".csv")).is_file():
+                file_path = output_path.with_suffix(".csv")
+
+            if file_path.is_file():
                 df_i, geofile = process_file(file_path, cfg, geofile=geofile)
                 if geofile:
-                    df_i.to_file(output_path + ".gpkg")
+                    df_i.to_file(output_path.with_suffix(".gpkg"))
                 else:
-                    df_i.to_csv(output_path + ".csv", index=False)
+                    df_i.to_csv(output_path.with_suffix(".csv"), index=False)
 
                 dfs.append(df_i)
 
@@ -983,65 +1119,143 @@ def read_mixed(path, cfg):
 
     # Case 2: single file
     else:
-        df, geofile = process_file(path, cfg, geofile=geofile)
+        filename_wo_ext = path.stem  # removes extension
+        output_path = Path(output_folder) / filename_wo_ext
+        if (output_path.with_suffix(".gpkg")).is_file():
+            file_path = output_path.with_suffix(".gpkg")
+
+        elif (output_path.with_suffix(".csv")).is_file():
+            file_path = output_path.with_suffix(".csv")
+        else:
+            file_path = path 
+
+        if file_path.is_file():
+            df, geofile = process_file(file_path, cfg, geofile=geofile)
+            if geofile:
+                df.to_file(output_path.with_suffix(".gpkg"))
+            else:
+                df.to_csv(output_path.with_suffix(".csv"), index=False)
 
     return df, geofile
 
 def preprocess(cfg):
-    train_path = cfg.TRAIN_PATH 
+    train_path = Path(cfg.TRAIN_PATH)
     if hasattr(cfg, "STRATIFY_COLUMN"):
         stratify_column = cfg.STRATIFY_COLUMN
     else:
-        stratify_column = None
+        stratify_column = "source"
 
-    if hasattr(cfg, "TEST_PATH"):
-        test_path = cfg.TEST_PATH
+    if hasattr(cfg, "VAL_PATH"):
+        val_path = cfg.VAL_PATH
     else:
-        test_path = None 
+        val_path = None 
 
-    if hasattr(cfg, "TEST_SIZE"):
-        test_size = cfg.TEST_SIZE
+    if hasattr(cfg, "VAL_SIZE"):
+        val_size = cfg.VAL_SIZE
     else:
-        test_size = 0 
+        val_size = 0 
 
 
     # Resolve output path
-    output_path = Path(cfg.TRAIN_TEST_OUTPUT_PATH)
+    output_path = Path(cfg.PREPROCESSED_OUTPUT_PATH)
     if not output_path.is_absolute():
         output_path = Path(cfg.PROJECT_ROOT) / output_path
 
     os.makedirs(output_path, exist_ok=True)
 
-    # Load data
-    df, train_geofile = read_mixed(train_path, cfg)
+    if (output_path / "train_cleaned.gpkg").exists() and (output_path / "val_cleaned.gpkg").exists():
+        train_df = gpd.read_file(output_path / "train_cleaned.gpkg")
+        val_df = gpd.read_file(output_path / "val_cleaned.gpkg")
 
-    if test_path is None:
-        train_df, test_df = create_train_test_split(
-            df,
-            cfg,
-            stratify_col=stratify_column,
-            test_size=test_size
+    elif (output_path / "train_cleaned.csv").exists() and (output_path / "val_cleaned.csv").exists():
+        train_df = pd.read_csv(output_path / "train_cleaned.csv")
+        val_df = pd.read_csv(output_path / "val_cleaned.csv")
+    else:
+        # Load data
+        df, train_geofile = read_mixed(train_path, cfg)
+
+        if val_path is None:
+            train_df, val_df = create_train_test_split(
+                df,
+                cfg,
+                stratify_col=stratify_column,
+                val_size=val_size
+            )
+            val_geofile = train_geofile
+        else:
+            train_df = df
+            val_df, val_geofile = read_mixed(val_path, cfg)
+
+        all_columns = list(
+            set(["id"] + cfg.FEATURES + [cfg.LABEL, stratify_column, "source", "geometry"])
+            .intersection(set(train_df.columns))
         )
-        test_geofile = train_geofile
-    else:
-        train_df = df
-        test_df, test_geofile = read_mixed(test_path, cfg)
+        train_df = train_df[all_columns].copy()
+            
+        all_columns = list(
+            set(["id"] + cfg.FEATURES + [cfg.LABEL, stratify_column, "source", "geometry"])
+            .intersection(set(val_df.columns))
+        )
+        val_df = val_df[all_columns].copy()
 
-    # Save train
-    if train_geofile:
-        train_df.to_file(output_path / "train_raw.gpkg")
-        train_df = pd.DataFrame(train_df.drop(columns="geometry"))
-    else:
-        train_df.to_csv(output_path / "train_raw.csv", index=False)
+        # Save train
+        if train_geofile:
+            train_df.to_file(output_path / "train_cleaned.gpkg")
+            train_df = pd.DataFrame(train_df.drop(columns="geometry"))
+        else:
+            train_df.to_csv(output_path / "train_cleaned.csv", index=False)
 
-    # Save test
-    if test_geofile:
-        test_df.to_file(output_path / "test_raw.gpkg")
-        test_df = pd.DataFrame(test_df.drop(columns="geometry"))
-    else:
-        test_df.to_csv(output_path / "test_raw.csv", index=False)
+        # Save val
+        if val_geofile:
+            val_df.to_file(output_path / "val_cleaned.gpkg")
+            val_df = pd.DataFrame(val_df.drop(columns="geometry"))
+        else:
+            val_df.to_csv(output_path / "val_cleaned.csv", index=False)
 
-    print(f"Train/test splits saved in {output_path}")
+        print(f"Train/val splits saved in {output_path}")
+
+    if hasattr(cfg, "TEST_PATH"):
+        test_path = cfg.TEST_PATH
+    else:
+        test_path = None 
+        
+    if test_path is not None:
+        if (output_path / "test_cleaned.gpkg").exists():
+            test_df = gpd.read_file(output_path / "test_cleaned.gpkg")
+        elif (output_path / "test_cleaned.csv").exists():
+            test_df = pd.read_csv(output_path / "test_cleaned.csv")
+        else:
+            test_geofile = False
+            if test_path == "VAL":
+                if (output_path / "val_cleaned.gpkg").exists():
+                    test_geofile = True
+                    test_df = gpd.read_file(output_path / "val_cleaned.gpkg")
+                elif (output_path / "val_cleaned.csv").exists():
+                    test_geofile = False
+                    test_df = pd.read_csv(output_path / "val_cleaned.csv")
+                    
+                test_df = test_df.copy().drop(columns=[cfg.LABEL])
+            else:
+                test_path = Path(test_path)
+                if not test_path.is_absolute():
+                    test_path = Path(cfg.PROJECT_ROOT) / test_path
+            
+                # Load data
+                test_df, test_geofile = read_mixed(test_path, cfg)
+                all_columns = list(
+                    set(["id"] + cfg.FEATURES + [cfg.LABEL, stratify_column, "source", "geometry"])
+                    .intersection(set(test_df.columns))
+                )
+                test_df = test_df[all_columns].copy()
+
+            # Save test
+            if test_geofile:
+                test_df.to_file(output_path / "test_cleaned.gpkg")
+                test_df = pd.DataFrame(test_df.drop(columns="geometry"))
+            else:
+                test_df.to_csv(output_path / "test_cleaned.csv", index=False)
+
+            print(f"Preprocessed test dataset saved in {output_path}")
 
     # Preprocessing
     X_train, y_train, preprocessor, label_encoder = encode(
@@ -1051,8 +1265,8 @@ def preprocess(cfg):
         fit=True
     )
 
-    X_test, y_test, _, _ = encode(
-        test_df,
+    X_val, y_val, _, _ = encode(
+        val_df,
         cfg,
         preprocessor=preprocessor,
         label_encoder=label_encoder,
@@ -1060,46 +1274,126 @@ def preprocess(cfg):
     )
 
     print(f"Training set shape: {X_train.shape}")
-    print(f"Test set shape: {X_test.shape}")
+    print(f"Val set shape: {X_val.shape}")
 
     feature_names = get_feature_names(preprocessor, train_df, cfg)
     print(f"Feature names: {feature_names}")
     print(f"Num. features: {len(feature_names)}")
 
-    # Build preprocessed DataFrames
+    # Build cleaned DataFrames
     train_preprocessed = pd.DataFrame(X_train, columns=feature_names)
-    train_preprocessed[cfg.LABEL] = y_train
+    train_preprocessed[cfg.LABEL] = list(y_train)
+    train_preprocessed["id"] = list(train_df["id"])
+    train_preprocessed["id"] = train_preprocessed["id"].astype(int)
 
-    test_preprocessed = pd.DataFrame(X_test, columns=feature_names)
-    test_preprocessed[cfg.LABEL] = y_test
+    val_preprocessed = pd.DataFrame(X_val, columns=feature_names)
+    val_preprocessed[cfg.LABEL] = list(y_val)
+    val_preprocessed["id"] = list(val_df["id"])
+    val_preprocessed["id"] = val_preprocessed["id"].astype(int)
 
-    # Save outputs (corrected paths)
-    train_output_path = output_path / "train_preprocessed.csv"
-    test_output_path = output_path / "test_preprocessed.csv"
+    # Save outputs
+    train_output_path = output_path / "train.csv"
+    val_output_path = output_path / "val.csv"
 
     train_preprocessed.to_csv(train_output_path, index=False)
-    test_preprocessed.to_csv(test_output_path, index=False)
+    val_preprocessed.to_csv(val_output_path, index=False)
 
-    print(f"Preprocessed datasets saved in {output_path}")
+    print(f"Preprocessed train/val datasets saved in {output_path}")
 
-def load(split: Literal["train", "test"], cfg):
+    if test_path is not None:
+        X_test, _ = encode(
+            test_df,
+            cfg,
+            preprocessor=preprocessor,
+            label_encoder=label_encoder,
+            fit=False,
+            is_test=True
+        )
+        print(f"Test set shape: {X_test.shape}")
+        test_preprocessed = pd.DataFrame(X_test, columns=feature_names)
+        test_preprocessed["id"] = list(test_df["id"])
+        test_preprocessed["id"] = test_preprocessed["id"].astype(int)
+
+        test_preprocessed_output_path = output_path / "test.csv"
+        test_preprocessed.to_csv(test_preprocessed_output_path, index=False)
+        print(f"Preprocessed test dataset saved in {output_path}")
+
+def load(split: Literal["train", "val", "val"], cfg):
     df = None
     if split=="train":
-        path = Path(cfg.TRAIN_TEST_OUTPUT_PATH) / "train_preprocessed.csv"
-        if os.path.isfile(path):
+        path = Path(cfg.PREPROCESSED_OUTPUT_PATH) / "train.csv"
+        if path.is_file():
+            df = pd.read_csv(path)
+        else:
+            preprocess(cfg)
+            df = pd.read_csv(path)
+    elif split=="val":
+        path = Path(cfg.PREPROCESSED_OUTPUT_PATH) / "val.csv"
+        if path.is_file():
             df = pd.read_csv(path)
         else:
             preprocess(cfg)
             df = pd.read_csv(path)
     elif split=="test":
-        path = Path(cfg.TRAIN_TEST_OUTPUT_PATH) / "test_preprocessed.csv"
-        if os.path.isfile(path):
+        path = Path(cfg.PREPROCESSED_OUTPUT_PATH) / "test.csv"
+        if path.is_file():
             df = pd.read_csv(path)
         else:
             preprocess(cfg)
             df = pd.read_csv(path)
     else:
-        raise Exception("Argument split must be 'train' or 'test'.")
-    X = df.drop(columns=[cfg.LABEL])
-    y = df[cfg.LABEL]
-    return X, y
+        raise Exception("Argument split must be 'train' or 'val' or 'test'.")
+    
+    if split == "test":
+        X = df.drop(columns=[col for col in [cfg.LABEL, "id"] if col in df.columns])
+        return X
+    else:
+        X = df.drop(columns=[cfg.LABEL, "id"])
+        y = df[cfg.LABEL]
+        return X, y
+    
+def save_test(df,cfg):
+    input_path = Path(cfg.PREPROCESSED_OUTPUT_PATH) 
+    input_test_file = input_path / "test.csv"
+    if hasattr(cfg, "LABEL_VALUES"):
+        df["predicted_label"] = df["predicted_label"].map(
+            dict(enumerate(cfg.LABEL_VALUES))
+        )
+
+    df = df.rename(columns={"predicted_label":cfg.LABEL})
+    input_df = pd.read_csv(input_test_file)
+
+    # Add id col
+    if "id" in input_df.columns:
+        df.loc[:, "id"] = input_df.loc[:, "id"].values
+
+    is_geofile = False
+    if (input_path / "test_cleaned.gpkg").exists():
+        test_df = gpd.read_file(input_path / "test_cleaned.gpkg")
+        is_geofile = True
+    elif (input_path / "test_cleaned.csv").exists():
+        test_df = pd.read_csv(input_path / "test_cleaned.csv")
+        is_geofile = False
+
+    if "id" in df.columns:
+        test_df = test_df.merge(df[["id",cfg.LABEL]],on="id", how="left")
+    else:
+        test_df[:,cfg.LABEL] = df[:,cfg.LABEL].values
+
+    if hasattr(cfg, "TEST_OUTPUT_PATH"):
+        test_output_path = Path(cfg.TEST_OUTPUT_PATH)
+    else:
+        test_output_path = Path(cfg.PREPROCESSED_OUTPUT_PATH)
+
+    if not test_output_path.is_absolute():
+        test_output_path = Path(cfg.PROJECT_ROOT) / test_output_path
+    
+    os.makedirs(test_output_path, exist_ok=True)
+    if is_geofile:
+        test_output_path = test_output_path / "test_output.gpkg"
+        test_df.to_file(test_output_path)
+    else:
+        test_output_path = test_output_path / "test_output.csv"
+        test_df.to_csv(test_output_path)
+
+    print(f"Test output saved as {test_output_path}")

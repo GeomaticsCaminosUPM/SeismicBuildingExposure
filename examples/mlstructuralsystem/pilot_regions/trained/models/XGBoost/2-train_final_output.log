@@ -1,0 +1,7 @@
+Best run id:               2163ec5c7cbb4889a4f273ed5cf8e26e
+Best strategy:             smote
+Best XGBoost params:       {'learning_rate': 0.1, 'max_depth': 6, 'subsample': 0.8, 'colsample_bytree': 0.8}
+use_smote:                 True
+use_class_weight:          False
+Model saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/XGBoost/model_final_XGBoost.pkl
+Final model trained and registered in MLflow.

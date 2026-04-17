@@ -1,0 +1,7 @@
+Best run id:               adcbfcf6125f4a83ad11501239a2a706
+Best strategy:             class_weight
+Best CatBoost params:      {'iterations': 100, 'learning_rate': 0.1, 'depth': 6}
+use_smote:                 False
+use_class_weight:          True
+Model saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/CatBoost/model_final_CatBoost.pkl
+Final model trained and registered in MLflow.

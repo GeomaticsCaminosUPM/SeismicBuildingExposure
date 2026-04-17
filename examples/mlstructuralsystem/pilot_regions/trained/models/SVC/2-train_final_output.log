@@ -1,0 +1,9 @@
+Best run id:               1065899e4c6e44d897fce609688b33bb
+Best strategy:             class_weight
+Best SVC params:           {'kernel': 'poly', 'degree': 3, 'C': 10.0}
+use_smote:                 False
+use_class_weight:          True
+Model saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/SVC/model_final_SVC.pkl
+Final model trained and registered in MLflow.
+
+2026/04/17 20:02:22 WARNING mlflow.sklearn: Saving scikit-learn models in the pickle or cloudpickle format requires exercising caution because these formats rely on Python's object serialization mechanism, which can execute arbitrary code during deserialization. The recommended safe alternative is the 'skops' format. For more information, see: https://scikit-learn.org/stable/model_persistence.html

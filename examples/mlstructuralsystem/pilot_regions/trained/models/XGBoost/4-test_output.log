@@ -1,0 +1,3 @@
+Loaded model from: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/XGBoost/model_final_XGBoost.pkl
+Test data shape: (345, 30)
+Test output saved as /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/dataset/test_output.gpkg

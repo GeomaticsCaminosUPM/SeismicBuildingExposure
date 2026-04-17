@@ -1,0 +1,140 @@
+{
+  "execution_time": 268.1021537780762,
+  "models": [
+    {
+      "model": "LogisticRegression",
+      "status": "completed",
+      "start_time": "2026-04-17T19:58:00.326866",
+      "scripts": [
+        {
+          "name": "1-train_cv.py",
+          "status": "success",
+          "time": 12.026713848114014,
+          "error": null
+        },
+        {
+          "name": "2-train_final.py",
+          "status": "success",
+          "time": 5.273409128189087,
+          "error": null
+        },
+        {
+          "name": "3-val.py",
+          "status": "success",
+          "time": 3.004772186279297,
+          "error": null
+        }
+      ],
+      "total_time": 20.304895162582397,
+      "end_time": "2026-04-17T19:58:20.633336"
+    },
+    {
+      "model": "RandomForest",
+      "status": "completed",
+      "start_time": "2026-04-17T19:58:20.633521",
+      "scripts": [
+        {
+          "name": "1-train_cv.py",
+          "status": "success",
+          "time": 23.46089792251587,
+          "error": null
+        },
+        {
+          "name": "2-train_final.py",
+          "status": "success",
+          "time": 6.670560836791992,
+          "error": null
+        },
+        {
+          "name": "3-val.py",
+          "status": "success",
+          "time": 3.9024970531463623,
+          "error": null
+        }
+      ],
+      "total_time": 34.033955812454224,
+      "end_time": "2026-04-17T19:58:54.668715"
+    },
+    {
+      "model": "XGBoost",
+      "status": "completed",
+      "start_time": "2026-04-17T19:58:54.668930",
+      "scripts": [
+        {
+          "name": "1-train_cv.py",
+          "status": "success",
+          "time": 33.336060762405396,
+          "error": null
+        },
+        {
+          "name": "2-train_final.py",
+          "status": "success",
+          "time": 12.099254846572876,
+          "error": null
+        },
+        {
+          "name": "3-val.py",
+          "status": "success",
+          "time": 5.082516431808472,
+          "error": null
+        }
+      ],
+      "total_time": 50.51783204078674,
+      "end_time": "2026-04-17T19:59:45.187975"
+    },
+    {
+      "model": "CatBoost",
+      "status": "completed",
+      "start_time": "2026-04-17T19:59:45.188141",
+      "scripts": [
+        {
+          "name": "1-train_cv.py",
+          "status": "success",
+          "time": 17.236538887023926,
+          "error": null
+        },
+        {
+          "name": "2-train_final.py",
+          "status": "success",
+          "time": 6.184948444366455,
+          "error": null
+        },
+        {
+          "name": "3-val.py",
+          "status": "success",
+          "time": 3.0266640186309814,
+          "error": null
+        }
+      ],
+      "total_time": 26.448151350021362,
+      "end_time": "2026-04-17T20:00:11.637563"
+    },
+    {
+      "model": "SVC",
+      "status": "completed",
+      "start_time": "2026-04-17T20:00:11.637740",
+      "scripts": [
+        {
+          "name": "1-train_cv.py",
+          "status": "success",
+          "time": 128.28579878807068,
+          "error": null
+        },
+        {
+          "name": "2-train_final.py",
+          "status": "success",
+          "time": 5.440326690673828,
+          "error": null
+        },
+        {
+          "name": "3-val.py",
+          "status": "success",
+          "time": 3.063697576522827,
+          "error": null
+        }
+      ],
+      "total_time": 136.78982305526733,
+      "end_time": "2026-04-17T20:02:28.428776"
+    }
+  ]
+}

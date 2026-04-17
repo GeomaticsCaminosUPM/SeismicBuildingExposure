@@ -1,0 +1,9 @@
+Best run id:               f876023f77bb4222bfb351fcbb988286
+Best strategy:             smote
+Best RF params:            {'min_samples_split': 8, 'max_depth': 12}
+use_smote:                 True
+use_class_weight:          False
+Model saved at: /home/miguel/Documents/Proyectos/SismicaUPM/seismic-building-exposure/examples/mlstructuralsystem/pilot_regions/models/RandomForest/model_final_RandomForest.pkl
+Final model trained and registered in MLflow.
+
+2026/04/17 19:58:47 WARNING mlflow.sklearn: Saving scikit-learn models in the pickle or cloudpickle format requires exercising caution because these formats rely on Python's object serialization mechanism, which can execute arbitrary code during deserialization. The recommended safe alternative is the 'skops' format. For more information, see: https://scikit-learn.org/stable/model_persistence.html
