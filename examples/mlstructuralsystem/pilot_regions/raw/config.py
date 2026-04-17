@@ -15,7 +15,7 @@ TEST_PATH = "VAL" # "VAL" - Use the same dataset as VAL as test so that you can 
 
 CLEANED_DATASET_PATH = PROJECT_ROOT / "dataset" / "cleaned"
 PREPROCESSED_OUTPUT_PATH = PROJECT_ROOT / "dataset"
-TEST_OUTPUT_PATH = PROJECT_ROOT / "dataset"
+TEST_OUTPUT_PATH = PROJECT_ROOT / "dataset" / "test_output"
 
 # ── Reproducibility ────────────────────────────────────────────────────────
 RANDOM_STATE = 42
