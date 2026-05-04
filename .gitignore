@@ -4,6 +4,8 @@ examples/*
 # BUT allow this specific project
 !examples/mlstructuralsystem/
 !examples/mlstructuralsystem/**
+!examples/footprint/
+!examples/footprint/**
 
 # Sphinx build output
 docs/_build/
