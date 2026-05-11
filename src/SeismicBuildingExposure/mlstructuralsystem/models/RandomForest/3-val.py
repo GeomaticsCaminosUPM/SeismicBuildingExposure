@@ -9,10 +9,9 @@ sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
 
 import config
 
-import seismicbuildingexposure.mlstructuralsystem.dataset as dataset 
+import SeismicBuildingExposure.mlstructuralsystem.dataset as dataset 
 
-
-MODEL_TYPE = "XGBoost"
+MODEL_TYPE = "RandomForest"
 THIS_DIR   = Path(__file__).parent.resolve()
 MODEL_PATH = THIS_DIR / f"model_final_{MODEL_TYPE}.pkl"
 

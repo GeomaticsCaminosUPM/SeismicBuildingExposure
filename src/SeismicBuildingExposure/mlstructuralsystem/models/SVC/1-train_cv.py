@@ -5,7 +5,7 @@ import shutil
 from sklearn.model_selection import StratifiedKFold, ParameterGrid
 from sklearn.metrics import f1_score, accuracy_score
 from imblearn.over_sampling import SMOTE
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 import joblib
 from pathlib import Path
 import sys
@@ -14,9 +14,9 @@ sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
 
 import config
 
-import seismicbuildingexposure.mlstructuralsystem.dataset as dataset 
+import SeismicBuildingExposure.mlstructuralsystem.dataset as dataset 
 
-MODEL_TYPE = "RandomForest"
+MODEL_TYPE = "SVC"
 THIS_DIR   = Path(__file__).parent.resolve()
 MODELS_DIR = THIS_DIR / "models"
 MODELS_DIR.mkdir(exist_ok=True)
@@ -26,7 +26,7 @@ def get_class_weights(y):
     counts = y.value_counts()
     return (counts.max() / counts).to_dict()
 
-def build_rf(params, class_weight=None):
+def build_svc(params, class_weight=None):
     correct_types = {}
     for key, value in params.items():
         if isinstance(value, str):
@@ -39,10 +39,9 @@ def build_rf(params, class_weight=None):
                 correct_types[key] = value
         else:
             correct_types[key] = value
-    return RandomForestClassifier(
-        n_estimators=200,
+    return SVC(
+        probability=True,
         random_state=config.RANDOM_STATE,
-        n_jobs=-1,
         class_weight=class_weight,
         **correct_types
     )
@@ -72,13 +71,15 @@ def main():
         "class_weight": {"use_smote": False, "use_class_weight": True},
         "smote":        {"use_smote": True,  "use_class_weight": False},
     }
-    RF_GRID = {
-        "max_depth":        [6, 12],
-        "min_samples_split": [2, 8],
+    # degree solo es relevante para kernel="poly"; SVC lo ignora para otros kernels
+    SVC_GRID = {
+        "kernel": ["linear", "rbf", "poly"],
+        "C":      [0.1, 1.0, 10.0],
+        "degree": [2, 3],
     }
 
     for config_name, cfg in EXPERIMENT_CONFIGS.items():
-        for grid_params in ParameterGrid(RF_GRID):
+        for grid_params in ParameterGrid(SVC_GRID):
             run_name = f"{MODEL_TYPE}_{config_name}_{grid_params}"
             with mlflow.start_run(run_name=run_name):
                 mlflow.log_param("model_type", MODEL_TYPE)
@@ -93,16 +94,16 @@ def main():
                     y_train, y_val = y.iloc[tr_idx], y.iloc[val_idx]
 
                     if cfg["use_class_weight"]:
-                        model = build_rf(grid_params, class_weight=get_class_weights(y_train))
+                        model = build_svc(grid_params, class_weight=get_class_weights(y_train))
                     else:
-                        model = build_rf(grid_params)
+                        model = build_svc(grid_params)
 
                     model_trained, _, f1, acc = train_fold(
                         X_train, y_train, X_val, y_val,
                         model, use_smote=cfg["use_smote"]
                     )
 
-                    fold_path = MODELS_DIR / f"rf_{config_name}_fold{fold}.pkl"
+                    fold_path = MODELS_DIR / f"svc_{config_name}_fold{fold}.pkl"
                     joblib.dump(model_trained, fold_path)
                     mlflow.log_artifact(str(fold_path), artifact_path=f"fold_{fold}_model")
                     mlflow.log_metric(f"f1_macro_fold_{fold}", f1)
@@ -115,7 +116,7 @@ def main():
                 mlflow.log_metric("mean_acc",       np.mean(acc_fold))
 
                 for fold in range(1, config.N_SPLITS + 1):
-                    pth = MODELS_DIR / f"rf_{config_name}_fold{fold}.pkl"
+                    pth = MODELS_DIR / f"svc_{config_name}_fold{fold}.pkl"
                     if pth.exists():
                         pth.unlink()
 

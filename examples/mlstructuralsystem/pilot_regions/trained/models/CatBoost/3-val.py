@@ -9,7 +9,7 @@ sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
 
 import config
 
-import seismicbuildingexposure.mlstructuralsystem.dataset as dataset 
+import SeismicBuildingExposure.mlstructuralsystem.dataset as dataset 
 
 MODEL_TYPE = "CatBoost"
 THIS_DIR   = Path(__file__).parent.resolve()

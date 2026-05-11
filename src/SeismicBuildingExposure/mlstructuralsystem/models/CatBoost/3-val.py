@@ -9,10 +9,9 @@ sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
 
 import config
 
-import seismicbuildingexposure.mlstructuralsystem.dataset as dataset 
+import SeismicBuildingExposure.mlstructuralsystem.dataset as dataset 
 
-
-MODEL_TYPE = "LogisticRegression"
+MODEL_TYPE = "CatBoost"
 THIS_DIR   = Path(__file__).parent.resolve()
 MODEL_PATH = THIS_DIR / f"model_final_{MODEL_TYPE}.pkl"
 
@@ -23,6 +22,10 @@ def main():
 
     X_val, y_val = dataset.load(split="val",cfg=config)
     y_pred = model.predict(X_val)
+
+    # CatBoost devuelve array 2D en algunos casos, aplanamos si es necesario
+    if hasattr(y_pred, "ndim") and y_pred.ndim > 1:
+        y_pred = y_pred.flatten()
 
     print("\n=== VAL SET EVALUATION ===\n")
     report = classification_report(y_val, y_pred)
@@ -36,6 +39,7 @@ def main():
     cm = confusion_matrix(y_val, y_pred)
     print("Confusion matrix:\n", cm)
 
+    # Guardar artefactos locales
     cm_path     = THIS_DIR / "confusion_matrix_val.csv"
     report_path = THIS_DIR / "classification_report_val.txt"
 
@@ -46,6 +50,7 @@ def main():
         f.write(report)
     print(f"Classification report saved at: {report_path}")
 
+    # Loguear en MLflow
     mlflow.set_tracking_uri(config.MLFLOW_TRACKING_URI)
     mlflow.set_experiment(config.EXPERIMENT_FINAL)
 
@@ -57,7 +62,12 @@ def main():
         mlflow.log_metric("val_macro_f1", macro_f1)
         mlflow.log_metric("val_accuracy", acc)
         mlflow.log_artifact(str(cm_path))
+        mlflow.log_artifact(str(report_path))
         mlflow.log_text(report, "classification_report_val.txt")
+        mlflow.log_text(
+            pd.DataFrame(cm).to_string(),
+            "confusion_matrix_val.txt"
+        )
 
     print("Results logged to MLflow.")
 

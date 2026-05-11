@@ -7,9 +7,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
 
 import config
-import seismicbuildingexposure.mlstructuralsystem.dataset as dataset
+import SeismicBuildingExposure.mlstructuralsystem.dataset as dataset
 
-MODEL_TYPE = "RandomForest"
+MODEL_TYPE = "CatBoost"
 THIS_DIR   = Path(__file__).parent.resolve()
 MODEL_PATH = THIS_DIR / f"model_final_{MODEL_TYPE}.pkl"
 
@@ -19,7 +19,7 @@ def main():
     model = joblib.load(MODEL_PATH)
     print(f"Loaded model from: {MODEL_PATH}")
 
-    # Load test data (NO labels)
+    # Load test data (no labels)
     X_test = dataset.load(split="test", cfg=config)
 
     # Ensure DataFrame
@@ -30,6 +30,10 @@ def main():
 
     # Predict
     y_pred = model.predict(X_test)
+
+    # CatBoost safety: flatten 2D outputs if needed
+    if hasattr(y_pred, "ndim") and y_pred.ndim > 1:
+        y_pred = y_pred.flatten()
 
     # Safety check
     if len(X_test) != len(y_pred):

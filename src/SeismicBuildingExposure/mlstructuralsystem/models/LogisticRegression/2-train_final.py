@@ -2,7 +2,7 @@ import pandas as pd
 import mlflow
 import mlflow.sklearn
 import joblib
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from imblearn.over_sampling import SMOTE
 from pathlib import Path
 import sys
@@ -11,9 +11,10 @@ sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
 
 import config
 
-import seismicbuildingexposure.mlstructuralsystem.dataset as dataset 
+import SeismicBuildingExposure.mlstructuralsystem.dataset as dataset 
 
-MODEL_TYPE       = "RandomForest"
+
+MODEL_TYPE       = "LogisticRegression"
 THIS_DIR         = Path(__file__).parent.resolve()
 MODEL_FINAL_PATH = THIS_DIR / f"model_final_{MODEL_TYPE}.pkl"
 
@@ -35,12 +36,12 @@ def safe_cast_param(param):
 def get_best_run_and_params(experiment_name):
     runs = mlflow.search_runs(
         experiment_names=[experiment_name],
-        filter_string="params.model_type = 'RandomForest' and attributes.status = 'FINISHED'",
+        filter_string="params.model_type = 'LogisticRegression' and attributes.status = 'FINISHED'",
         output_format="pandas"
     )
     if len(runs) == 0:
         raise RuntimeError(
-            f"No completed RandomForest runs found in '{experiment_name}'. "
+            f"No completed LogisticRegression runs found in '{experiment_name}'. "
             "Check that 1-train_cv.py ran successfully."
         )
 
@@ -50,9 +51,9 @@ def get_best_run_and_params(experiment_name):
 
     best_run = runs.sort_values(metric_col, ascending=False).iloc[0]
 
-    all_params = {k.replace("params.", ""): best_run[k] for k in best_run.index if k.startswith("params.")}
-    rf_keys    = {"max_depth", "min_samples_split"}
-    best_params = {k: safe_cast_param(v) for k, v in all_params.items() if k in rf_keys and v is not None}
+    all_params  = {k.replace("params.", ""): best_run[k] for k in best_run.index if k.startswith("params.")}
+    logreg_keys = {"C"}
+    best_params = {k: safe_cast_param(v) for k, v in all_params.items() if k in logreg_keys and v is not None}
 
     strategy         = best_run.get("params.strategy", "")
     use_smote        = strategy == "smote"
@@ -60,13 +61,13 @@ def get_best_run_and_params(experiment_name):
 
     print(f"Best run id:               {best_run['run_id']}")
     print(f"Best strategy:             {strategy}")
-    print(f"Best RF params:            {best_params}")
+    print(f"Best LogReg params:        {best_params}")
     print(f"use_smote:                 {use_smote}")
     print(f"use_class_weight:          {use_class_weight}")
 
     return best_params, use_smote, use_class_weight, best_run["run_id"]
 
-def build_rf(params, class_weight=None):
+def build_logreg(params, class_weight=None):
     correct_types = {}
     for key, value in params.items():
         if isinstance(value, str):
@@ -79,10 +80,11 @@ def build_rf(params, class_weight=None):
                 correct_types[key] = value
         else:
             correct_types[key] = value
-    return RandomForestClassifier(
-        n_estimators=200,
+    return LogisticRegression(
+        multi_class="multinomial",
+        solver="lbfgs",
         random_state=config.RANDOM_STATE,
-        n_jobs=-1,
+        max_iter=500,
         class_weight=class_weight,
         **correct_types
     )
@@ -104,7 +106,7 @@ def main():
 
     class_weight = get_class_weights(y_res) if USE_CLASS_WEIGHT else None
 
-    model = build_rf(best_params, class_weight=class_weight)
+    model = build_logreg(best_params, class_weight=class_weight)
     model.fit(X_res, y_res)
 
     joblib.dump(model, MODEL_FINAL_PATH)

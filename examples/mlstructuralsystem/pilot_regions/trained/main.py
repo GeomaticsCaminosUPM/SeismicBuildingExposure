@@ -1,8 +1,8 @@
 import sys
 
-import seismicbuildingexposure.mlstructuralsystem.dataset as dataset 
-import seismicbuildingexposure.mlstructuralsystem.train as train 
-import seismicbuildingexposure.mlstructuralsystem.test as test 
+import SeismicBuildingExposure.mlstructuralsystem.dataset as dataset 
+import SeismicBuildingExposure.mlstructuralsystem.train as train 
+import SeismicBuildingExposure.mlstructuralsystem.test as test 
 
 import config
 
