@@ -4,6 +4,7 @@ from pathlib import Path
 from sklearn.metrics import classification_report, f1_score, accuracy_score, confusion_matrix
 import mlflow
 import sys
+import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
 
@@ -22,11 +23,11 @@ def main():
 
     X_val, y_val = dataset.load(split="val",cfg=config)
     y_pred = model.predict(X_val)
+    y_pred = np.argmax(y_pred, axis=1) if y_pred.ndim > 1 else y_pred
 
     print("\n=== VAL SET EVALUATION ===\n")
     report = classification_report(y_val, y_pred)
     print(report)
-
     macro_f1 = f1_score(y_val, y_pred, average="macro")
     acc      = accuracy_score(y_val, y_pred)
     print(f"Macro-F1: {macro_f1:.4f}")

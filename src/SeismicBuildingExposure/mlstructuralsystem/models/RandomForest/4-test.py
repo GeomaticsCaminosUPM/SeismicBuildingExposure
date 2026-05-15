@@ -26,6 +26,7 @@ def main():
     if not isinstance(X_test, pd.DataFrame):
         X_test = pd.DataFrame(X_test)
 
+    X_test = X_test[model.feature_names_in_]
     print(f"Test data shape: {X_test.shape}")
 
     # Predict

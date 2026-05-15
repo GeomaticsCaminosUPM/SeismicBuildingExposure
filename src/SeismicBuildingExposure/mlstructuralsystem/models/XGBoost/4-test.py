@@ -2,6 +2,7 @@ import pandas as pd
 import joblib
 from pathlib import Path
 import sys
+import numpy as np 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(1, str(Path(__file__).resolve().parents[2]))
@@ -21,6 +22,7 @@ def main():
     # Load test data WITHOUT labels
     # Make sure your dataset.load supports this!
     X_test = dataset.load(split="test", cfg=config)
+    X_test = X_test[model.feature_names_in_]
 
     # If your loader returns (X, y), then do:
     # X_test, _ = dataset.load(split="test", cfg=config)
@@ -29,6 +31,7 @@ def main():
 
     # Predict
     y_pred = model.predict(X_test)
+    y_pred = np.argmax(y_pred, axis=1) if y_pred.ndim > 1 else y_pred
 
     # Convert to DataFrame (if needed)
     if not isinstance(X_test, pd.DataFrame):

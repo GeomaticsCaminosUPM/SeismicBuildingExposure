@@ -268,7 +268,7 @@ def add_irregularity_features(gdf, cfg):
     return gdf
 
 
-def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFrame | pd.DataFrame:
+def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg, test=False) -> gpd.GeoDataFrame | pd.DataFrame:
     """
     Standardize target labels and enforce ordinal category ordering in a GeoDataFrame or DataFrame.
 
@@ -290,6 +290,10 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
                    present in the data but not defined in the ordinal mappings.
     """
     data = data.copy()
+    if test:
+        if cfg.LABEL in data.columns:
+            test = False 
+
     if "geometry" in data.columns and not isinstance(data,gpd.GeoDataFrame):
         # Convert WKT strings to shapely geometries
         data["geometry"] = data["geometry"].apply(wkt.loads)
@@ -318,24 +322,33 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
 
             data = data[mask]
         
-    if cfg.LABEL not in data.columns:
+    if (not test) and (cfg.LABEL not in data.columns):
         raise Exception(f"Label column '{cfg.LABEL}' not found in dataset columns: {list(data.columns)}")
     
-    n_removed = data[cfg.LABEL].isna().sum()
-    
-    if n_removed > 0:
-        print("\n" + "="*60)
-        print(f"⚠️ WARNING: Removed {n_removed} rows due to missing values in column '{cfg.LABEL}'")
-        print("="*60 + "\n")
-        
-        data = data[data[cfg.LABEL].notna()]
+    if not test:
+        mask = data[cfg.LABEL].isin(cfg.LABEL_VALUES) & data[cfg.LABEL].notna()
+        n_removed = (~mask).sum()
+        invalid_values = (
+            data.loc[~mask, cfg.LABEL]
+            .astype("object")
+            .dropna()
+            .unique()
+            .tolist()
+        )
+        data = data[mask]
+        if n_removed > 0:
+            print("\n" + "="*60)
+            print(f"⚠️ WARNING: Removed {n_removed} rows due to missing or invalid values in column '{cfg.LABEL}'. Invalid values {invalid_values}.")
+            print("="*60 + "\n")
+            
+            data = data[data[cfg.LABEL].notna()]
 
-    # Convert to categorical (no order)
-    data[cfg.LABEL] = pd.Categorical(
-        data[cfg.LABEL],
-        categories=cfg.LABEL_VALUES,
-        ordered=False
-    )
+        # Convert to categorical (no order)
+        data[cfg.LABEL] = pd.Categorical(
+            data[cfg.LABEL],
+            categories=cfg.LABEL_VALUES,
+            ordered=False
+        )
 
     for col in ["id",*cfg.FEATURES]:
         if col in data.columns:
@@ -349,8 +362,27 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
                 data = data[data[col].notna()]
 
     data = data.reset_index(drop=True)
-    print("Dataset label counts")
-    print(data[cfg.LABEL].value_counts())
+
+    if not test:
+        print("Dataset label counts")
+        label_counts = data[cfg.LABEL].value_counts()
+        print(label_counts)
+
+        # Find labels with fewer than 5 samples
+        rare_labels = label_counts[label_counts < 5].index.tolist()
+
+        if rare_labels:
+            rare_counts = label_counts[label_counts < 5].to_dict()
+
+            raise ValueError(
+                "\n"
+                + "=" * 60
+                + "\n"
+                + "❌ ERROR: Some labels have fewer than 5 instances.\n\n"
+                + f"Rare labels detected: {rare_counts}\n\n"
+                + "These labels should be removed from config.py LABEL_VALUES before training.\n"
+                + "=" * 60
+            )
 
     if cfg.CATEGORICAL_FEATURES is not None:
         for col, categories in cfg.CATEGORICAL_FEATURES.items():
@@ -361,10 +393,17 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
                 mismatch = actual_values - defined_set
                 if mismatch:
                     raise ValueError(
-                        f"Column '{col}' has mismatch between valid values and dataset values.\n"
-                        f"Valid values: {defined_set}\n"
-                        f"Dataset values: {actual_values}\n"
-                        f"Mismatch: {mismatch}"
+                        "\n"
+                        + "=" * 60
+                        + "\n"
+                        + f"❌ ERROR: Column '{col}' has mismatch between "
+                        "defined categorical values and dataset values.\n\n"
+                        + f"Defined values : {sorted(defined_set)}\n"
+                        + f"Dataset values : {sorted(actual_values)}\n"
+                        + f"Mismatch       : {sorted(mismatch)}\n\n"
+                        + "Please update CATEGORICAL_FEATURES in config.py "
+                        "or clean the dataset values.\n"
+                        + "=" * 60
                     )
 
                 # Convert to categorical (no order)
@@ -391,7 +430,17 @@ def check_features(data: gpd.GeoDataFrame | pd.DataFrame, cfg) -> gpd.GeoDataFra
 
                     missing_from_definition = actual_values - defined_set
                     if missing_from_definition:
-                        raise Exception(f"    - Categories in data but NOT in definition: {missing_from_definition}")
+                        raise ValueError(
+                            "\n"
+                            + "=" * 60
+                            + "\n"
+                            + f"❌ ERROR: Column '{col}' has categories in the dataset "
+                            "that are NOT defined in ORDINAL_FEATURES.\n\n"
+                            + f"Missing categories: {sorted(missing_from_definition)}\n\n"
+                            + "Please update ORDINAL_FEATURES in config.py "
+                            "to include these categories.\n"
+                            + "=" * 60
+                        )
                 else:
                     print(f"  - Column '{col}': Mapping is consistent with data.")
 
@@ -673,7 +722,6 @@ def encode(
         set(cfg.FEATURES+[cfg.LABEL]).intersection(set(processed_df.columns))
     )
     processed_df = processed_df[all_cols]
-
     # Create preprocessor and label encoder if not provided
     if preprocessor is None:
         preprocessor = create_preprocessor(processed_df, cfg, scale_numeric=scale_numeric)
@@ -687,7 +735,6 @@ def encode(
     else:
         X_df = processed_df.drop(columns=[cfg.LABEL])
         y = label_encoder.transform(processed_df[cfg.LABEL])
-        
     # Transform features
     if fit:
         X = preprocessor.fit_transform(X_df)
@@ -990,7 +1037,7 @@ def plot_confusion_matrix(y_pred: np.ndarray, y_true: np.ndarray, normalize: boo
     plt.tight_layout()
     plt.show()
 
-def read_geofile(file, cfg):
+def read_geofile(file, cfg, test=False):
     file_path = Path(file)
 
     # Load based on file type
@@ -1011,13 +1058,13 @@ def read_geofile(file, cfg):
     #     .intersection(gdf.columns)
     # )
 
-    # gdf = check_features(gdf[all_columns], cfg)
+    # gdf = check_features(gdf[all_columns], cfg, test=test)
 
-    gdf = check_features(gdf, cfg)
+    gdf = check_features(gdf, cfg, test=test)
 
     return gdf
 
-def read_tabular(file, cfg):
+def read_tabular(file, cfg, test=False):
     file_path = Path(file)
     suffix = file_path.suffix.lower()
 
@@ -1040,9 +1087,9 @@ def read_tabular(file, cfg):
     #     .intersection(df.columns)
     # )
 
-    # df = check_features(df[all_columns], cfg)
+    # df = check_features(df[all_columns], cfg, test=test)
 
-    df = check_features(df, cfg)
+    df = check_features(df, cfg, test=test)
 
     return df
 
@@ -1067,13 +1114,13 @@ def is_tabular(file_path: Path) -> bool:
     return file_path.suffix.lower() in [".csv", ".xlsx", ".xls", ".parquet"]
 
 
-def process_file(file_path, cfg, geofile=False):
+def process_file(file_path, cfg, geofile=False, test=False):
     file_path = Path(file_path)
     if is_geofile(file_path):
-        df_i = read_geofile(file_path, cfg)
+        df_i = read_geofile(file_path, cfg, test=test)
         geofile = True
     elif is_tabular(file_path):
-        df_i = read_tabular(file_path, cfg)
+        df_i = read_tabular(file_path, cfg, test=test)
         if geofile:
             raise Exception(f"Combining geometry and tabular files is not supported. File {file_path} is tabular.")
             # Ensure geometry column exists if mixing with geodata
@@ -1083,7 +1130,7 @@ def process_file(file_path, cfg, geofile=False):
     
     return df_i, geofile
     
-def read_mixed(path, cfg):
+def read_mixed(path, cfg, test=False):
     path = Path(path)
     geofile = False
 
@@ -1107,7 +1154,7 @@ def read_mixed(path, cfg):
                 file_path = output_path.with_suffix(".csv")
 
             if file_path.is_file():
-                df_i, geofile = process_file(file_path, cfg, geofile=geofile)
+                df_i, geofile = process_file(file_path, cfg, geofile=geofile, test=test)
                 if geofile:
                     df_i.to_file(output_path.with_suffix(".gpkg"))
                 else:
@@ -1130,7 +1177,7 @@ def read_mixed(path, cfg):
             file_path = path 
 
         if file_path.is_file():
-            df, geofile = process_file(file_path, cfg, geofile=geofile)
+            df, geofile = process_file(file_path, cfg, geofile=geofile, test=test)
             if geofile:
                 df.to_file(output_path.with_suffix(".gpkg"))
             else:
@@ -1172,7 +1219,7 @@ def preprocess(cfg):
         val_df = pd.read_csv(output_path / "val_cleaned.csv")
     else:
         # Load data
-        df, train_geofile = read_mixed(train_path, cfg)
+        df, train_geofile = read_mixed(train_path, cfg, test=False)
 
         if val_path is None:
             train_df, val_df = create_train_test_split(
@@ -1184,7 +1231,7 @@ def preprocess(cfg):
             val_geofile = train_geofile
         else:
             train_df = df
-            val_df, val_geofile = read_mixed(val_path, cfg)
+            val_df, val_geofile = read_mixed(val_path, cfg, test=False)
 
         all_columns = list(
             set(["id"] + cfg.FEATURES + [cfg.LABEL, stratify_column, "source", "geometry"])
@@ -1241,7 +1288,7 @@ def preprocess(cfg):
                     test_path = Path(cfg.PROJECT_ROOT) / test_path
             
                 # Load data
-                test_df, test_geofile = read_mixed(test_path, cfg)
+                test_df, test_geofile = read_mixed(test_path, cfg, test=True)
                 all_columns = list(
                     set(["id"] + cfg.FEATURES + [cfg.LABEL, stratify_column, "source", "geometry"])
                     .intersection(set(test_df.columns))
@@ -1309,6 +1356,7 @@ def preprocess(cfg):
             fit=False,
             is_test=True
         )
+
         print(f"Test set shape: {X_test.shape}")
         test_preprocessed = pd.DataFrame(X_test, columns=feature_names)
         test_preprocessed["id"] = list(test_df["id"])

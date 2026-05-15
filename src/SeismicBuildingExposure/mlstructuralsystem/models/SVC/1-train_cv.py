@@ -55,6 +55,7 @@ def train_fold(X_train, y_train, X_val, y_val, model, use_smote):
         X_train_res, y_train_res = X_train, y_train
     model.fit(X_train_res, y_train_res)
     y_pred = model.predict(X_val)
+    y_pred = np.argmax(y_pred, axis=1) if y_pred.ndim > 1 else y_pred
     f1  = f1_score(y_val, y_pred, average="macro")
     acc = accuracy_score(y_val, y_pred)
     return model, y_pred, f1, acc

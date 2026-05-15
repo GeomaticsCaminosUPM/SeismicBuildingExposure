@@ -22,11 +22,11 @@ def main():
 
     X_val, y_val = dataset.load(split="val",cfg=config)
     y_pred = model.predict(X_val)
-
+    
     print("\n=== VAL SET EVALUATION ===\n")
     report = classification_report(y_val, y_pred)
     print(report)
-
+    
     macro_f1 = f1_score(y_val, y_pred, average="macro")
     acc      = accuracy_score(y_val, y_pred)
     print(f"Macro-F1: {macro_f1:.4f}")

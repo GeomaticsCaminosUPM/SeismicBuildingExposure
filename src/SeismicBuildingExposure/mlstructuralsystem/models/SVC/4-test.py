@@ -2,6 +2,7 @@ import pandas as pd
 import joblib
 from pathlib import Path
 import sys
+import numpy as np
 
 # Add project paths
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -28,8 +29,10 @@ def main():
     if not isinstance(X_test, pd.DataFrame):
         X_test = pd.DataFrame(X_test)
 
+    X_test = X_test[model.feature_names_in_]
     # Predict
     y_pred = model.predict(X_test)
+    y_pred = np.argmax(y_pred, axis=1) if y_pred.ndim > 1 else y_pred
 
     # Sanity check
     if len(X_test) != len(y_pred):
